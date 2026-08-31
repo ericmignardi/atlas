@@ -1,0 +1,8 @@
+# Local development only. Never active in the container.
+management:
+  endpoint:
+    health:
+      # Show the db component to an unauthenticated caller so `curl
+      # localhost:8080/actuator/health` is a useful check. Production keeps the
+      # base "when-authorized" and gives anonymous callers only {"status":"UP"}.
+      show-details: always

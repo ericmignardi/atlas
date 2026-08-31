@@ -45,7 +45,7 @@ Fill in as you go. This is the honest record.
 
 | Day | Date | Planned | Actual | Notes |
 |---|---|---|---|---|
-| 1 | Mon Aug 31 | Foundations + walking skeleton | | |
+| 1 | Mon Aug 31 | Foundations + walking skeleton | Done, except Azure | Boot 4.1.1, not the 3.5.x in §1.3 — Initializr no longer offers 3.5. Starter names, Testcontainers 2.x, and springdoc 3.1.0 follow from that. Azure deferred until the free account exists; both images build and run locally, so §1.7 is a push, not a first attempt. |
 | 2 | Tue Sep 1 | Persistence | | |
 | 3 | Wed Sep 2 | Projects + Tags API | | |
 | 4 | Thu Sep 3 | Environments + Tasks API | | |

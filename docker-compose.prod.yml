@@ -50,6 +50,9 @@ services:
       DATABASE_USER: ${DATABASE_USER}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
       PORT: 8080
+      # application.yml defaults to the dev profile for local runs; the container
+      # must not inherit it (dev exposes actuator health details anonymously).
+      SPRING_PROFILES_ACTIVE: prod
       # No default: a missing secret must fail startup (NFR-2.2).
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET, e.g. openssl rand -base64 48}
       # The exact origin the browser loads the frontend from. No wildcard (NFR-2.4).

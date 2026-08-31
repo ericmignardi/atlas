@@ -1,0 +1,96 @@
+/*
+ * Atlas design tokens — PRD §9.
+ *
+ * Tailwind v4 is CSS-first: there is no tailwind.config.js. Everything declared
+ * in @theme becomes both a CSS custom property and a utility class, so
+ * --color-accent gives you bg-accent, text-accent, border-accent for free.
+ *
+ * Day 1 lays down colour and type. Motion, shadows, and the enum/tag recipes
+ * land on Day 6.
+ */
+@import "tailwindcss";
+
+@theme {
+  /* ── Typography ────────────────────────────────────────────────────────
+     Public Sans for interface text, JetBrains Mono for branches, URLs, ids,
+     and tech-stack chips. Base is 15/23 — deliberately not 16, which reads
+     as a marketing page. */
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Cascadia Code", monospace;
+
+  --text-eyebrow: 0.6875rem;      /* 11 */
+  --text-eyebrow--line-height: 0.875rem;   /* 14 */
+  --text-eyebrow--letter-spacing: 0.08em;
+  --text-eyebrow--font-weight: 600;
+
+  --text-xs: 0.75rem;             /* 12 */
+  --text-xs--line-height: 1rem;   /* 16 */
+  --text-xs--font-weight: 500;
+
+  --text-sm: 0.8125rem;           /* 13 */
+  --text-sm--line-height: 1.25rem;/* 20 */
+
+  --text-base: 0.9375rem;         /* 15 */
+  --text-base--line-height: 1.4375rem; /* 23 */
+
+  --text-lg: 1.0625rem;           /* 17 */
+  --text-lg--line-height: 1.5rem; /* 24 */
+  --text-lg--font-weight: 600;
+
+  --text-xl: 1.3125rem;           /* 21 */
+  --text-xl--line-height: 1.75rem;/* 28 */
+  --text-xl--font-weight: 600;
+
+  --text-2xl: 1.75rem;            /* 28 */
+  --text-2xl--line-height: 2.125rem; /* 34 */
+  --text-2xl--font-weight: 600;
+
+  --text-mono-sm: 0.75rem;        /* 12 */
+  --text-mono-sm--line-height: 1.125rem; /* 18 */
+
+  --text-mono-base: 0.8125rem;    /* 13 */
+  --text-mono-base--line-height: 1.3125rem; /* 21 */
+
+  /* ── Colour ────────────────────────────────────────────────────────────
+     A cool blue-grey neutral carries ~90% of the interface. One accent hue,
+     rationed to primary actions, active navigation, and "now" states. */
+  --color-canvas: #edeff4;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f8f9fb;
+
+  --color-ink: #1c222b;
+  --color-ink-secondary: #454d5f;
+  --color-ink-muted: #5d667b;
+
+  --color-line: #e5e8ef;
+
+  --color-accent: #2a61d6;
+  --color-accent-hover: #2251b4;
+
+  --color-green-600: #1b7a48;   /* shipped, completed */
+  --color-amber-600: #b4750b;   /* paused, due soon */
+  --color-red-600: #c7382e;     /* urgent, overdue, destructive */
+  --color-violet-600: #6d34c4;  /* blocked — a dependency, not a severity */
+  --color-teal-600: #12796c;    /* database platform */
+
+  /* ── Radii ─────────────────────────────────────────────────────────────
+     Badges are md, chips are fully rounded — shape alone distinguishes them. */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+}
+
+@layer base {
+  html {
+    /* Resting cards use a 1px border and no shadow (PRD §9.3). */
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(42 97 214 / 0.18);
+  }
+}
