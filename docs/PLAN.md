@@ -45,7 +45,7 @@ Fill in as you go. This is the honest record.
 
 | Day | Date | Planned | Actual | Notes |
 |---|---|---|---|---|
-| 1 | Mon Aug 31 | Foundations + walking skeleton | Done, except Azure | Boot 4.1.1, not the 3.5.x in §1.3 — Initializr no longer offers 3.5. Starter names, Testcontainers 2.x, and springdoc 3.1.0 follow from that. Azure deferred until the free account exists; both images build and run locally, so §1.7 is a push, not a first attempt. |
+| 1 | Mon Aug 31 | Foundations + walking skeleton | Done | Boot 4.1.1, not the 3.5.x in §1.3 — Initializr no longer offers 3.5. Starter names, Testcontainers 2.x, and springdoc 3.1.0 follow from that. All Azure work moved to [§10.1](#101-azure-account-and-first-deployment) pending the free account; §1.7 now ends at container images, both of which build and run. See [R-12](#risk-register). |
 | 2 | Tue Sep 1 | Persistence | | |
 | 3 | Wed Sep 2 | Projects + Tags API | | |
 | 4 | Thu Sep 3 | Environments + Tasks API | | |
@@ -110,13 +110,19 @@ codebases look like.
 
 ## Foundations and a walking skeleton
 
-**Objective.** Both applications run locally against a real database, and a hello-world version of
-the backend is already deployed to Azure and reachable over HTTPS.
+**Objective.** Both applications run locally against a real database, and the production container
+images build and run.
 
-> **Why deploy on day one.** Deployment is where side projects die — it gets left to the end, it
-> goes wrong, and the repository ends with no live URL. Doing a trivial round trip now means Day
-> 10 is a *re-deploy of something that already works*, not a first attempt. Expect this to take
-> the whole afternoon. That is the point.
+> **Deployment is deferred to Day 10.** This plan originally put a hello-world deploy on day one,
+> for a good reason: deployment is where side projects die — it gets left to the end, it goes
+> wrong, and the repository ends with no live URL. That reason has not gone away. The Azure
+> account simply does not exist yet, so everything requiring `az` now sits in
+> [Day 10 §10.1](#101-azure-account-and-first-deployment). The cost of the move is stated plainly:
+> Day 10 becomes a *first* deployment rather than a re-deploy. See [R-12](#risk-register).
+>
+> What Day 1 keeps is every part that de-risks the deploy without an account. Both `Dockerfile`s
+> are written, both images are built, and the backend image is run against Postgres. When the
+> account exists, §10.1 is a push and three `az` commands — not a debugging session.
 
 ### 1.1 Prerequisites — install and verify first
 
@@ -127,7 +133,7 @@ the backend is already deployed to Azure and reachable over HTTPS.
 | Node.js | 22 LTS or newer | `node -v` |
 | Docker Desktop | current | `docker ps` |
 | Git | current | `git --version` |
-| Azure CLI | current | `az version` |
+| Azure CLI | current — **not needed until Day 10** | `az version` |
 | IntelliJ IDEA | Community is fine | — |
 
 > **On the Java version.** Java 21 is the right call: it is the LTS that Spring Boot 3.5 targets,
@@ -522,19 +528,13 @@ export default defineConfig({
 `src/styles/theme.css` holds the design tokens from [PRD §9](./PRD.md#9-uiux-specification). Start
 it today with `@import "tailwindcss";` and the colour and type tokens; fill in the rest on Day 6.
 
-### 1.7 Azure walking skeleton
+### 1.7 Container images
 
-Sign in and create the resource group:
+Nothing in this section needs an Azure account. The image *is* the deployable artifact, so
+building it today is the part of deployment that can be de-risked early — Day 10 then spends its
+time on infrastructure rather than on a Dockerfile.
 
-```bash
-az login
-az group create --name rg-atlas --location canadacentral
-```
-
-> `canadacentral` (Toronto) is the right region — lowest latency from Ancaster, and it keeps data
-> in Canada, which is a point worth making in an interview.
-
-**Backend container.** A multi-stage `backend/Dockerfile`:
+**Backend.** A multi-stage `backend/Dockerfile`:
 
 ```dockerfile
 # ── build ──────────────────────────────────────────────────────────────
@@ -558,43 +558,39 @@ ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]
 Copying `pom.xml` and resolving dependencies *before* copying `src` is what makes rebuilds fast —
 Docker caches that layer until the POM changes.
 
-Build and push to **GitHub Container Registry** (free, unlike Azure Container Registry, which has
-no free tier):
+**Frontend.** Static Web Apps builds from source and needs no image, but `docker-compose.prod.yml`
+does — and an nginx image is the escape hatch if Azure ever stops being the answer. A
+`frontend/Dockerfile` that builds with Node and serves the static output through nginx, with a
+`try_files` SPA fallback so React Router owns the client-side routes.
+
+Vite inlines `VITE_*` variables at **build** time, not run time, so the API base URL is a
+`--build-arg`. Changing it needs a rebuild, not a restart.
+
+**Prove both images, not just the build.** A green `docker build` only means the Dockerfile
+parses. Run the backend image against the Compose database and call the endpoint through it:
 
 ```bash
-echo $GITHUB_TOKEN | docker login ghcr.io -u <your-github-username> --password-stdin
-docker build -t ghcr.io/<user>/atlas-backend:dev ./backend
-docker push ghcr.io/<user>/atlas-backend:dev
+docker build -t atlas-backend:dev ./backend
+docker build -t atlas-frontend:dev ./frontend
+
+docker run -d --name atlas-smoke --network atlas_default -p 18080:8080 \
+  -e DATABASE_URL="jdbc:postgresql://db:5432/atlas" \
+  -e DATABASE_USER=atlas -e DATABASE_PASSWORD=atlas \
+  -e SPRING_PROFILES_ACTIVE=prod -e JWT_SECRET="throwaway-smoke-key" \
+  atlas-backend:dev
+
+curl localhost:18080/api/ping        # expect {"status":"ok"}
+docker rm -f atlas-smoke
 ```
 
-Create the Container Apps environment and deploy:
-
-```bash
-az containerapp env create \
-  --name atlas-env --resource-group rg-atlas --location canadacentral
-
-az containerapp create \
-  --name atlas-backend --resource-group rg-atlas --environment atlas-env \
-  --image ghcr.io/<user>/atlas-backend:dev \
-  --target-port 8080 --ingress external \
-  --min-replicas 0 --max-replicas 1 \
-  --cpu 0.5 --memory 1.0Gi
-```
-
-`--min-replicas 0` is what keeps this inside the free monthly grant: the container scales to zero
-when idle and costs nothing. The trade-off is a 10–30 second cold start on the first request
-(NFR-1.5) — a real cost, disclosed in the README rather than hidden.
-
-**Frontend.** Create a Static Web App (free tier) from the Azure Portal, pointed at the GitHub
-repository, with app location `frontend`, output location `dist`. It writes a GitHub Actions
-workflow into the repository on your behalf.
-
-Today only the hello-world needs to work. Full wiring is Day 10.
+That run exercises the production profile, the non-root user, and the container's view of the
+database — three of the things most likely to break a first deploy. What is left for Day 10 is
+Azure account setup, not application packaging.
 
 ### Deliverable
 
 A pushed repository containing a Spring Boot application and a Vite application that both run
-locally against Docker Postgres, plus a hello-world backend reachable on an Azure HTTPS URL.
+locally against Docker Postgres, plus a backend container image that serves `/api/ping` when run.
 
 ### Done when
 
@@ -605,7 +601,8 @@ locally against Docker Postgres, plus a hello-world backend reachable on an Azur
 - [x] `curl localhost:8080/actuator/health` returns `{"status":"UP"}` with a `db` component
 - [x] `npm run dev` serves the Vite app at `localhost:5173`
 - [x] The Vite app fetches `/api/ping` through the proxy without a CORS error
-- [ ] `curl https://atlas-backend.<region>.azurecontainerapps.io/api/ping` returns from Azure — deferred, pending the Azure account. Both images build and run locally.
+- [x] `docker build` succeeds for both `backend/Dockerfile` and `frontend/Dockerfile`
+- [x] The backend image runs against the Compose database and returns `{"status":"ok"}`
 - [x] `git log` shows at least one commit and the remote is set
 - [x] `git ls-files | grep -c "^.env$"` returns `0`
 
@@ -618,11 +615,11 @@ Ask an LLM to explain, and make sure you can restate each in your own words:
 - Why Flyway rather than `ddl-auto: update`
 - What `open-in-view` does and why the default is considered a mistake
 - Docker layer caching, and why `COPY pom.xml` comes before `COPY src`
-- Container Apps scale-to-zero: the billing model, and what a cold start costs
+- Why the runtime stage drops to a JRE and a non-root user, and what that buys you
 
 ### Commit
 
-`chore: scaffold Spring Boot backend and Vite frontend with Azure walking skeleton`
+`chore: scaffold Spring Boot backend and Vite frontend`
 
 ---
 
@@ -1924,10 +1921,78 @@ someone who has never seen it.
 
 Implements the deployment acceptance criteria in PRD §10.
 
-> The walking skeleton from Day 1 means today is a *re-deploy*, not a first attempt. If Day 1 went
-> well, the morning is enough for infrastructure and the afternoon goes to documentation.
+> **This is the first deployment, not a re-deploy.** The Day 1 walking skeleton was deferred, so
+> everything from the Azure account to the live URL happens today. Budget the whole day for
+> §10.1–§10.5 and treat the documentation in §10.7 as the part that gets cut if the day runs
+> long — a live URL with a thin README beats a polished README and no URL.
+>
+> Two things make this survivable. Both container images were built and run on Day 1, so the
+> application packaging is not in question. And CORS was configured on Day 5, so the one failure
+> that only ever appears in production has already been thought about.
+>
+> If §10.1 is still fighting you at lunch, go to the [cut list](#cut-list) rather than into the
+> evening. See [R-12](#risk-register).
 
-### 10.1 Azure Database for PostgreSQL
+### 10.1 Azure account and first deployment
+
+Deferred from Day 1 §1.7. Do this first — everything below depends on the resource group and the
+Container App existing.
+
+Sign in and create the resource group:
+
+```bash
+az login
+az group create --name rg-atlas --location canadacentral
+```
+
+> `canadacentral` (Toronto) is the right region — lowest latency from Ancaster, and it keeps data
+> in Canada, which is a point worth making in an interview.
+
+Build and push to **GitHub Container Registry** (free, unlike Azure Container Registry, which has
+no free tier). The Dockerfile and the image already work; this is the first time the image leaves
+the machine:
+
+```bash
+echo $GITHUB_TOKEN | docker login ghcr.io -u <your-github-username> --password-stdin
+docker build -t ghcr.io/<user>/atlas-backend:dev ./backend
+docker push ghcr.io/<user>/atlas-backend:dev
+```
+
+Create the Container Apps environment and deploy:
+
+```bash
+az containerapp env create \
+  --name atlas-env --resource-group rg-atlas --location canadacentral
+
+az containerapp create \
+  --name atlas-backend --resource-group rg-atlas --environment atlas-env \
+  --image ghcr.io/<user>/atlas-backend:dev \
+  --target-port 8080 --ingress external \
+  --min-replicas 0 --max-replicas 1 \
+  --cpu 0.5 --memory 1.0Gi
+```
+
+`--min-replicas 0` is what keeps this inside the free monthly grant: the container scales to zero
+when idle and costs nothing. The trade-off is a 10–30 second cold start on the first request
+(NFR-1.5) — a real cost, disclosed in the README rather than hidden.
+
+**Get the round trip before adding the database.** The app boots with the Compose-era defaults and
+no reachable Postgres, so it will fail its health check — that is expected at this point. What
+must work is the ingress:
+
+```bash
+curl https://atlas-backend.<region>.azurecontainerapps.io/api/ping    # {"status":"ok"}
+```
+
+That single call is the walking skeleton the plan originally wanted on Day 1. Do not move on to
+§10.2 until it answers.
+
+**Frontend.** Create a Static Web App (free tier) from the Azure Portal, pointed at the GitHub
+repository, with app location `frontend`, output location `dist`. It writes a GitHub Actions
+workflow into the repository on your behalf — which is why §10.5 only has to add a path filter to
+it rather than write it.
+
+### 10.2 Azure Database for PostgreSQL
 
 ```bash
 az postgres flexible-server create \
@@ -1962,7 +2027,7 @@ a separate rule while you are testing, and remove it afterwards.
 
 Flyway runs the migrations automatically on first startup.
 
-### 10.2 Backend secrets and configuration
+### 10.3 Backend secrets and configuration
 
 ```bash
 az containerapp secret set \
@@ -1994,14 +2059,14 @@ az containerapp update --name atlas-backend --resource-group rg-atlas \
   --set-probe-type liveness --set-probe-path /actuator/health
 ```
 
-### 10.3 Frontend deployment
+### 10.4 Frontend deployment
 
 Set `VITE_API_BASE_URL` to the Container Apps URL as a Static Web Apps application setting. The
 production build calls the absolute backend URL, so the Vite dev proxy is out of the picture and
 **CORS is live for the first time** — this is where the Day 5 configuration proves itself. If it
 fails, the browser console will say so plainly.
 
-### 10.4 GitHub Actions
+### 10.5 GitHub Actions
 
 `.github/workflows/backend.yml`:
 
@@ -2060,10 +2125,10 @@ Authenticate to Azure with a federated credential (OIDC) rather than a stored se
 secret. It is the current recommended practice and it means no long-lived credential sits in
 GitHub secrets.
 
-The Static Web Apps workflow already exists from Day 1; add a `paths: ['frontend/**']` filter so
-frontend and backend deploy independently.
+The Static Web Apps workflow was written into the repository by the portal in §10.1; add a
+`paths: ['frontend/**']` filter so frontend and backend deploy independently.
 
-### 10.5 Demo account
+### 10.6 Demo account
 
 Seed a demo user in the production database with a realistic dataset — 4 projects, environments
 across all three types with several pairs, tasks in every column with a few overdue, and 8 tags.
@@ -2072,7 +2137,7 @@ worth more than another feature.
 
 Put the credentials in the README and note that the data resets periodically.
 
-### 10.6 Documentation
+### 10.7 Documentation
 
 - Take screenshots at 1440 px: dashboard, projects list, project detail with the environment map,
   task board, command palette open. Save to `docs/img/`
@@ -2082,7 +2147,7 @@ Put the credentials in the README and note that the data resets periodically.
 - Copy `docs/README.md` to the repository root, or make the root README a short pointer
 - Update the [progress log](#progress-log) in this file with what actually happened
 
-### 10.7 Final QA
+### 10.8 Final QA
 
 Walk every checkbox in [PRD §10](./PRD.md#10-acceptance-criteria) **against production**, not
 against localhost. Then:
@@ -2101,6 +2166,8 @@ cold.
 
 ### Done when
 
+- [ ] `az group create` and `az containerapp create` have run, and the image is in GHCR
+- [ ] `/api/ping` answers on the Container Apps URL — the deferred Day 1 walking skeleton
 - [ ] The backend is live on Azure over HTTPS
 - [ ] The frontend is live on Azure over HTTPS
 - [ ] Registration, login, and every CRUD operation work in production
@@ -2117,6 +2184,7 @@ cold.
 
 ### Learning notes
 
+- Container Apps scale-to-zero: the billing model, and what a cold start costs
 - Container Apps revisions, and how traffic splitting enables zero-downtime deploys
 - OIDC federated credentials vs service principal secrets
 - Why deployments are tagged with a commit SHA, never `latest`
@@ -2144,6 +2212,7 @@ cold.
 | R-9 | **A secret reaches Git history.** | Low | Severe | `.gitignore` on Day 1, `secretref:` in Azure, and the history scan on Day 10. |
 | R-10 | **Testcontainers is slow or fails in CI.** | Low | Broken pipeline | `withReuse(true)` locally; GitHub-hosted runners support Docker natively. Verify in CI on Day 1, not Day 10. |
 | R-11 | **Scope creep** — the four deferred domains start looking easy. | Medium | Nothing finishes | They are in PRD §11 for a reason. Four polished domains beat eight half-built ones. Revisit after September 11. |
+| R-12 | **Deployment is deferred to Day 10.** The Day 1 walking skeleton was dropped because the Azure account did not exist, so the first deploy is also the last day. This is the exact failure mode the original Day 1 was designed to prevent. | High | No live URL — the single worst outcome for a portfolio project | Create the free account **before Day 10**; it is the only prerequisite and it costs nothing. Day 1 still built and ran both images, so the packaging is proven and §10.1 is account setup only. Budget the whole of Day 10 for §10.1–§10.5 and cut §10.7 documentation before cutting the deploy. If the account exists earlier, run §10.1 on any evening — it is a self-contained hour. |
 
 ---
 

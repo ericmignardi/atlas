@@ -65,7 +65,7 @@ Demo data resets periodically.
 
 ## Screenshots
 
-<!-- Capture at 1440px wide. See docs/PLAN.md Day 10 §10.6. -->
+<!-- Capture at 1440px wide. See docs/PLAN.md Day 10 §10.7. -->
 
 |  |  |
 |---|---|
