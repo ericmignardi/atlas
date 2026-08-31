@@ -1024,20 +1024,20 @@ uniform errors, and Swagger UI listing every endpoint.
 
 ### Done when
 
-- [ ] `POST /api/projects` with `{"name":"Harbourfront Dental"}` returns 201, slug `harbourfront-dental`, `Location` header set
-- [ ] A second project of the same name gets slug `harbourfront-dental-2`
-- [ ] `POST` with a blank name returns 400 with `fields.name` populated
-- [ ] `PATCH` with `{}` leaves every field unchanged — asserted by a test
-- [ ] `PATCH` with `{"client": null}` clears only `client`
-- [ ] Renaming regenerates the slug
-- [ ] `GET /api/projects` excludes archived; `?includeArchived=true` includes them
-- [ ] `?q=harbour` matches name, client, and description case-insensitively
-- [ ] Pinning a fifth project returns 409
-- [ ] `DELETE` returns 204 and a follow-up `GET` returns 404
-- [ ] `POST /api/tags` with `{"name":"React"}` twice returns the same id, 201 then 200
-- [ ] The first seven tags get seven different colours
-- [ ] `/swagger-ui.html` lists every endpoint with schemas
-- [ ] `./mvnw test` green; JaCoCo shows ≥70% on `ProjectService` and `TagService`
+- [x] `POST /api/projects` with `{"name":"Harbourfront Dental"}` returns 201, slug `harbourfront-dental`, `Location` header set
+- [x] A second project of the same name gets slug `harbourfront-dental-2`
+- [x] `POST` with a blank name returns 400 with `fields.name` populated
+- [x] `PATCH` with `{}` leaves every field unchanged — asserted by a test
+- [x] `PATCH` with `{"client": null}` clears only `client`
+- [x] Renaming regenerates the slug
+- [x] `GET /api/projects` excludes archived; `?includeArchived=true` includes them
+- [x] `?q=harbour` matches name, client, and description case-insensitively
+- [x] Pinning a fifth project returns 409
+- [x] `DELETE` returns 204 and a follow-up `GET` returns 404
+- [x] `POST /api/tags` with `{"name":"React"}` twice returns the same id, 201 then 200
+- [x] The first seven tags get seven different colours
+- [x] `/swagger-ui.html` lists every endpoint with schemas
+- [x] `./mvnw test` green; JaCoCo shows ≥70% on `ProjectService` and `TagService`
 
 ### Learning notes
 

@@ -29,14 +29,34 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
 	 * rendering N projects with their tags costs 1 + 2N queries (NFR-1.2).
 	 * DISTINCT is needed because the join multiplies each project by its tag
 	 * count.
+	 *
+	 * <p>The tag filter is an EXISTS subquery rather than a condition on the
+	 * fetched join. A condition there would narrow the <em>fetched collection</em>
+	 * as well as the result set, and every returned project would come back
+	 * carrying only the one tag that was searched for — the classic way to
+	 * corrupt an entity by filtering a fetch join.
+	 *
+	 * <p>{@code q} arrives pre-wrapped in wildcards and lower-cased; doing it in
+	 * the query would need a second parameter binding for the same value.
 	 */
 	@Query("""
 			SELECT DISTINCT p FROM Project p
-			LEFT JOIN FETCH p.tags t
-			LEFT JOIN FETCH t.tag
+			LEFT JOIN FETCH p.tags pt
+			LEFT JOIN FETCH pt.tag
 			WHERE p.user.id = :userId
-			  AND (:includeArchived = true OR p.status <> 'ARCHIVED')
-			ORDER BY p.updatedAt DESC
+			  AND (:includeArchived = true OR p.status <> com.ericmignardi.atlas.project.ProjectStatus.ARCHIVED)
+			  AND (:status IS NULL OR p.status = :status)
+			  AND (:tag IS NULL OR EXISTS (
+			        SELECT 1 FROM ProjectTag f WHERE f.project = p AND f.tag.name = :tag))
+			  AND (:q IS NULL
+			        OR LOWER(p.name) LIKE :q
+			        OR LOWER(p.client) LIKE :q
+			        OR LOWER(p.description) LIKE :q)
 			""")
-	List<Project> findAllForUser(UUID userId, boolean includeArchived);
+	List<Project> search(UUID userId, boolean includeArchived, ProjectStatus status, String tag, String q);
+
+	/** The unfiltered list, which is the common case and the one the tests pin. */
+	default List<Project> findAllForUser(UUID userId, boolean includeArchived) {
+		return search(userId, includeArchived, null, null, null);
+	}
 }

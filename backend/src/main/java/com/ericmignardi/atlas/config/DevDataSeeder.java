@@ -26,6 +26,7 @@ import com.ericmignardi.atlas.project.ProjectRepository;
 import com.ericmignardi.atlas.project.ProjectStatus;
 import com.ericmignardi.atlas.tag.ProjectTag;
 import com.ericmignardi.atlas.tag.Tag;
+import com.ericmignardi.atlas.tag.TagPalette;
 import com.ericmignardi.atlas.tag.TagRepository;
 import com.ericmignardi.atlas.task.Task;
 import com.ericmignardi.atlas.task.TaskPriority;
@@ -58,10 +59,6 @@ public class DevDataSeeder implements CommandLineRunner {
 
 	private static final String DEMO_EMAIL = "eric@ericmignardi.com";
 	private static final String DEMO_PASSWORD = "atlas-dev-password";
-
-	/** PRD 9.5 — the text hex of each recipe, in cycle order. */
-	private static final List<String> TAG_COLOURS = List.of(
-			"#2251B4", "#16643B", "#8A5A08", "#5B2BB0", "#0F6157", "#9B2C22", "#454D5F");
 
 	private final UserRepository userRepository;
 	private final ProjectRepository projectRepository;
@@ -106,7 +103,7 @@ public class DevDataSeeder implements CommandLineRunner {
 			tag.setName(name);
 			// FR-5.4: the colour follows the user's tag count, so a fresh set
 			// cycles through the palette instead of coming out all blue.
-			tag.setColor(TAG_COLOURS.get(index++ % TAG_COLOURS.size()));
+			tag.setColor(TagPalette.nextColour(index++));
 			byName.put(name, tagRepository.save(tag));
 		}
 		return byName;

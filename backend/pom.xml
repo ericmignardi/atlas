@@ -217,6 +217,26 @@
 					</dependency>
 				</dependencies>
 			</plugin>
+			<!--
+			  Surefire skips **/*IT.java by default, on the assumption that
+			  integration tests belong to Failsafe and the verify phase. Here they
+			  do not: the ITs are MockMvc against a Testcontainers Postgres that
+			  starts in a couple of seconds and is shared with the unit tests, so
+			  splitting them across two phases would buy a slower `mvn verify` and
+			  a `mvn test` that reports green while the endpoint tests never ran.
+			  One command runs everything, and JaCoCo sees all of it.
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<includes>
+						<include>**/*Test.java</include>
+						<include>**/*Tests.java</include>
+						<include>**/*IT.java</include>
+					</includes>
+				</configuration>
+			</plugin>
 			<!-- Coverage (NFR-3.2). -->
 			<plugin>
 				<groupId>org.jacoco</groupId>

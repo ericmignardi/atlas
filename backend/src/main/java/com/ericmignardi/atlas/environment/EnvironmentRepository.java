@@ -7,6 +7,8 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import com.ericmignardi.atlas.project.dto.ProjectCountRow;
+
 /**
  * An environment is owned transitively — through its project's user — so the
  * scoped lookups join up one level rather than carrying a user_id column that
@@ -26,4 +28,15 @@ public interface EnvironmentRepository extends JpaRepository<Environment, UUID> 
 	 * the update.
 	 */
 	Optional<Environment> findByPairedWithId(UUID pairedWithId);
+
+	long countByProjectId(UUID projectId);
+
+	/** Every project's environment count in one query, for the list view. */
+	@Query("""
+			SELECT new com.ericmignardi.atlas.project.dto.ProjectCountRow(e.project.id, COUNT(e))
+			FROM Environment e
+			WHERE e.project.user.id = :userId
+			GROUP BY e.project.id
+			""")
+	List<ProjectCountRow> countByProjectForUser(UUID userId);
 }

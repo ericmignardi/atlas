@@ -11,10 +11,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Minimal chain for the walking skeleton. There are no authenticated endpoints
- * yet, so this only establishes the shape the real configuration takes on
- * Day 5: stateless, no session, no form login, no CSRF token — a token-based
- * API has no cookie for an attacker to ride.
+ * The shape the real configuration takes on Day 5: stateless, no session, no
+ * form login, no CSRF token — a token-based API has no cookie for an attacker
+ * to ride.
+ *
+ * <p><strong>{@code /api/**} is open until Day 5.</strong> There is no way to
+ * obtain a token yet, so requiring one would mean no endpoint could be exercised
+ * at all. Ownership is still enforced underneath: every service call is scoped
+ * to a {@link com.ericmignardi.atlas.security.UserPrincipal}, and
+ * {@link com.ericmignardi.atlas.security.CurrentUserResolver} refuses to guess
+ * when more than one account exists. Day 5 replaces the {@code permitAll} with
+ * the JWT filter and nothing below this line has to change.
  */
 @Configuration
 @EnableWebSecurity
@@ -27,8 +34,12 @@ public class SecurityConfig {
 				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.httpBasic(basic -> basic.disable())
 				.formLogin(form -> form.disable())
+				.cors(cors -> {
+				})
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(HttpMethod.GET, "/api/ping").permitAll()
+						// Day 5: replace with .authenticated() plus the JWT filter.
+						.requestMatchers("/api/**").permitAll()
 						.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
 						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.anyRequest().authenticated())
