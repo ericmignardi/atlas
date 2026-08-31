@@ -598,16 +598,16 @@ locally against Docker Postgres, plus a hello-world backend reachable on an Azur
 
 ### Done when
 
-- [ ] `./mvnw clean compile` succeeds with all manual POM additions in place
-- [ ] `docker compose ps` shows `atlas-db` healthy
-- [ ] `./mvnw spring-boot:run` starts without error and connects to Postgres
-- [ ] `curl localhost:8080/api/ping` returns `{"status":"ok"}`
-- [ ] `curl localhost:8080/actuator/health` returns `{"status":"UP"}` with a `db` component
-- [ ] `npm run dev` serves the Vite app at `localhost:5173`
-- [ ] The Vite app fetches `/api/ping` through the proxy without a CORS error
-- [ ] `curl https://atlas-backend.<region>.azurecontainerapps.io/api/ping` returns from Azure
-- [ ] `git log` shows at least one commit and the remote is set
-- [ ] `git ls-files | grep -c "^.env$"` returns `0`
+- [x] `./mvnw clean compile` succeeds with all manual POM additions in place
+- [x] `docker compose ps` shows `atlas-db` healthy
+- [x] `./mvnw spring-boot:run` starts without error and connects to Postgres
+- [x] `curl localhost:8080/api/ping` returns `{"status":"ok"}`
+- [x] `curl localhost:8080/actuator/health` returns `{"status":"UP"}` with a `db` component
+- [x] `npm run dev` serves the Vite app at `localhost:5173`
+- [x] The Vite app fetches `/api/ping` through the proxy without a CORS error
+- [ ] `curl https://atlas-backend.<region>.azurecontainerapps.io/api/ping` returns from Azure — deferred, pending the Azure account. Both images build and run locally.
+- [x] `git log` shows at least one commit and the remote is set
+- [x] `git ls-files | grep -c "^.env$"` returns `0`
 
 ### Learning notes
 
