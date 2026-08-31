@@ -13,8 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
- * MVC wiring: the {@code @CurrentUser} resolver, and CORS for the Vite dev
- * server, which runs on a different origin to the API.
+ * NFR-2.4: exactly the configured frontend origin, no wildcard.
  *
  * <p>Implementing {@link WebMvcConfigurer} rather than annotating the class
  * {@code @EnableWebMvc} is deliberate — {@code @EnableWebMvc} switches Boot

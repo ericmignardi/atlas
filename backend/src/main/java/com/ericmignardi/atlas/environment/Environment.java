@@ -23,11 +23,6 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * A deployment target (PRD 5.4) — a Vercel preview, a Neon branch, a local
- * database. {@code url} is deliberately free text: a Neon connection string is
- * not a URL and validating it as one would reject the most common value.
- */
 @Entity
 @Table(name = "environments")
 @EntityListeners(AuditingEntityListener.class)
@@ -58,28 +53,23 @@ public class Environment extends Auditable {
 	@Column(name = "branch", length = 200)
 	private String branch;
 
+	/** Free text: a Neon connection string is not a URL. */
 	@Column(name = "url", length = 600)
 	private String url;
 
 	@Column(name = "notes", columnDefinition = "text")
 	private String notes;
 
-	/*
-	 * One column, two sides. This side owns paired_with_id: it is the only side
-	 * that writes. The database's UNIQUE on that column is what makes the
-	 * relation genuinely one-to-one — two rows cannot name the same partner even
-	 * if the service forgets to check, which is why pairing has to release
-	 * before it assigns (FR-3.11).
+	/**
+	 * The owning side. The database's UNIQUE on this column is what makes the
+	 * relation genuinely one-to-one, and why pairing has to release before it
+	 * assigns (FR-3.11).
 	 */
 	@OneToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "paired_with_id", unique = true)
 	private Environment pairedWith;
 
-	/*
-	 * The inverse view: "who points at me". mappedBy means there is no second
-	 * column and no write from this side — setting it changes nothing in the
-	 * database, which is the whole lesson of owning vs inverse.
-	 */
+	/** The inverse view. No second column, and no write from this side. */
 	@OneToOne(mappedBy = "pairedWith", fetch = FetchType.LAZY)
 	private Environment pairedBy;
 

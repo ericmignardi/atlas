@@ -58,9 +58,8 @@ class EnvironmentRepositoryTest extends AbstractIntegrationTest {
 		environmentRepository.save(TestFixtures.environment(
 				project, "Preview", EnvironmentType.PREVIEW, Platform.VERCEL));
 
-		// Read the raw column. If this ever came back "1" instead of "PREVIEW",
-		// inserting a value into the middle of the enum would silently
-		// reinterpret every existing row (PRD 5.8).
+		// If this ever came back "1" instead of "PREVIEW", inserting a value into
+		// the middle of the enum would reinterpret every existing row.
 		assertThat(jdbcTemplate.queryForObject(
 				"SELECT type FROM environments WHERE name = 'Preview'", String.class))
 				.isEqualTo("PREVIEW");
@@ -79,9 +78,7 @@ class EnvironmentRepositoryTest extends AbstractIntegrationTest {
 		app.setPairedWith(database);
 		environmentRepository.saveAndFlush(app);
 
-		// The inverse side reads back without ever having been written to: one
-		// column, two views. Looked up from the database's id, the owner of the
-		// pair is the application environment.
+		// The inverse side reads back without ever having been written to.
 		assertThat(environmentRepository.findByPairedWithId(database.getId()))
 				.get()
 				.extracting(Environment::getId)
@@ -101,10 +98,9 @@ class EnvironmentRepositoryTest extends AbstractIntegrationTest {
 		environmentRepository.saveAndFlush(first);
 		second.setPairedWith(database);
 
-		// This is the safety net under FR-3.7: even with a bug in the pairing
-		// service, the UNIQUE constraint on paired_with_id makes a shared
-		// partner impossible. It is also why pairing must release before it
-		// assigns (FR-3.11) rather than assigning and cleaning up after.
+		// The safety net under FR-3.7: even with a bug in the pairing service the
+		// UNIQUE constraint makes a shared partner impossible, which is also why
+		// FR-3.11 has to release before it assigns.
 		assertThatThrownBy(() -> environmentRepository.saveAndFlush(second))
 				.isInstanceOf(DataIntegrityViolationException.class);
 	}

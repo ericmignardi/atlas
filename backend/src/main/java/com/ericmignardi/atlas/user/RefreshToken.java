@@ -20,13 +20,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * A long-lived refresh token (PRD 5.7). Only the SHA-256 hash is persisted —
- * a database leak must not hand out working sessions. Revocation is a timestamp
- * rather than a delete so a rotated token presented a second time is still
- * recognisable as a replay.
- *
- * <p>Written today so the schema is complete in one pass; the service that
- * issues and rotates these arrives on Day 5.
+ * Only the SHA-256 hash is persisted: a database leak must not hand out working
+ * sessions. Revocation is a timestamp rather than a delete, so a rotated token
+ * presented a second time is still recognisable as a replay.
  */
 @Entity
 @Table(name = "refresh_tokens")

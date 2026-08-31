@@ -9,11 +9,6 @@ import org.springframework.data.jpa.repository.Query;
 
 import com.ericmignardi.atlas.project.dto.ProjectCountRow;
 
-/**
- * An environment is owned transitively — through its project's user — so the
- * scoped lookups join up one level rather than carrying a user_id column that
- * would only be able to disagree with the project's.
- */
 public interface EnvironmentRepository extends JpaRepository<Environment, UUID> {
 
 	List<Environment> findByProjectIdOrderByTypeAscNameAsc(UUID projectId);
@@ -22,16 +17,27 @@ public interface EnvironmentRepository extends JpaRepository<Environment, UUID> 
 	Optional<Environment> findByIdAndUserId(UUID id, UUID userId);
 
 	/**
-	 * The other half of a pair, found from the inverse side. Used by the
-	 * release-before-assign step (FR-3.11): before A can point at B, whoever is
-	 * currently pointing at B has to let go, or the UNIQUE constraint rejects
-	 * the update.
+	 * The fetch join keeps a project with twelve environments at one query rather
+	 * than thirteen (NFR-1.2). No ORDER BY: both enums persist as strings, so the
+	 * database would sort DEVELOPMENT ahead of PRODUCTION, and the display order
+	 * of FR-3.5 is the declaration order.
 	 */
+	@Query("""
+			SELECT e FROM Environment e
+			LEFT JOIN FETCH e.pairedWith
+			WHERE e.project.id = :projectId AND e.project.user.id = :userId
+			  AND (:type IS NULL OR e.type = :type)
+			  AND (:platform IS NULL OR e.platform = :platform)
+			""")
+	List<Environment> findForProject(UUID projectId, UUID userId, EnvironmentType type,
+			Platform platform);
+
+	/** FR-3.11: before A can point at B, whoever points at B has to let go. */
 	Optional<Environment> findByPairedWithId(UUID pairedWithId);
 
 	long countByProjectId(UUID projectId);
 
-	/** Every project's environment count in one query, for the list view. */
+	/** Every project's environment count in one query (NFR-1.2). */
 	@Query("""
 			SELECT new com.ericmignardi.atlas.project.dto.ProjectCountRow(e.project.id, COUNT(e))
 			FROM Environment e

@@ -22,9 +22,49 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
 			UUID userId, TaskStatus status, Instant before);
 
 	/**
+	 * FR-4.13, FR-4.14. The join is aliased and the project filter written
+	 * against the alias: {@code t.project.id} would be an inner join through a
+	 * nullable association, and every unassigned task would vanish from the
+	 * unfiltered list (FR-4.5).
+	 */
+	@Query("""
+			SELECT t FROM Task t
+			LEFT JOIN FETCH t.project p
+			WHERE t.user.id = :userId
+			  AND (:projectId IS NULL OR p.id = :projectId)
+			  AND (:status IS NULL OR t.status = :status)
+			  AND (:priority IS NULL OR t.priority = :priority)
+			  AND (:includeCompleted = TRUE OR t.status <> com.ericmignardi.atlas.task.TaskStatus.DONE)
+			""")
+	List<Task> search(UUID userId, UUID projectId, TaskStatus status, TaskPriority priority,
+			boolean includeCompleted);
+
+	/** FR-4.11, with the Done column narrowed to FR-4.12's seven-day window. */
+	@Query("""
+			SELECT t FROM Task t
+			LEFT JOIN FETCH t.project p
+			WHERE t.user.id = :userId
+			  AND (:projectId IS NULL OR p.id = :projectId)
+			  AND (t.status <> com.ericmignardi.atlas.task.TaskStatus.DONE
+			       OR (t.completedAt IS NOT NULL AND t.completedAt >= :doneSince))
+			ORDER BY t.sortOrder ASC
+			""")
+	List<Task> findBoard(UUID userId, UUID projectId, Instant doneSince);
+
+	/** FR-4.10's candidate set; the three-way split is timezone-dependent and happens in the service. */
+	@Query("""
+			SELECT t FROM Task t
+			LEFT JOIN FETCH t.project
+			WHERE t.user.id = :userId
+			  AND t.status <> com.ericmignardi.atlas.task.TaskStatus.DONE
+			  AND t.dueDate IS NOT NULL AND t.dueDate < :horizon
+			ORDER BY t.dueDate ASC
+			""")
+	List<Task> findOpenDueBefore(UUID userId, Instant horizon);
+
+	/**
 	 * Returns null when the column is empty — an aggregate over no rows is null,
-	 * not zero — which is why the return type is the boxed Integer. A new task
-	 * takes this minus one and lands on top without renumbering (FR-4.7).
+	 * not zero — which is why the return type is the boxed Integer (FR-4.7).
 	 */
 	@Query("SELECT MIN(t.sortOrder) FROM Task t WHERE t.user.id = :userId AND t.status = :status")
 	Integer findMinSortOrder(UUID userId, TaskStatus status);
@@ -33,11 +73,7 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
 
 	long countByProjectIdAndStatusNotAndDueDateBefore(UUID projectId, TaskStatus status, Instant before);
 
-	/**
-	 * Open tasks per project, for the project list. Grouped rather than counted
-	 * per row: twenty projects would otherwise mean twenty round trips for a
-	 * number that appears on a card (NFR-1.2).
-	 */
+	/** Open tasks per project, grouped rather than counted per row (NFR-1.2). */
 	@Query("""
 			SELECT new com.ericmignardi.atlas.project.dto.ProjectCountRow(t.project.id, COUNT(t))
 			FROM Task t

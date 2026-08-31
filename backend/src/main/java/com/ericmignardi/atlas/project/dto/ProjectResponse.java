@@ -12,15 +12,6 @@ import com.ericmignardi.atlas.tag.ProjectTag;
 import com.ericmignardi.atlas.tag.dto.TagSummary;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- * PRD 6.3. Built only inside the service, while the entity is still attached, so
- * the lazy tag association can be walked without {@code open-in-view}.
- *
- * <p>The mapping is a static factory and nothing else — no library, no
- * annotation processor. Twenty lines, and the compiler enforces exactly what a
- * mapping tool sells as an unmapped-property check: add a component and every
- * call site fails to build until it supplies one.
- */
 public record ProjectResponse(
 		UUID id,
 		String name,
@@ -33,12 +24,7 @@ public record ProjectResponse(
 		String engagement,
 		List<String> techStack,
 
-		/*
-		 * Named isPinned in the contract, and pinned on the entity. Jackson would
-		 * otherwise be free to publish this as "pinned" — the explicit name is
-		 * what keeps the JSON stable no matter what the record component is
-		 * called.
-		 */
+		/** Named isPinned in the contract, and pinned on the entity. */
 		@JsonProperty("isPinned") boolean pinned,
 
 		LocalDate startedAt,

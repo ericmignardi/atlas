@@ -5,14 +5,11 @@ import java.util.UUID;
 import com.ericmignardi.atlas.user.User;
 
 /**
- * The authenticated caller, reduced to what a service actually needs. Every
- * service method takes the id off this and passes it into a user-scoped
- * repository lookup, which is how FR-1.9 is enforced without a single explicit
- * ownership check.
+ * FR-1.9 is enforced by every service taking the id off this and passing it into
+ * a user-scoped repository lookup, rather than by explicit ownership checks.
  *
- * <p>Deliberately not the {@link User} entity: a detached entity in the
- * security context would be a lazy-loading trap and a way for the persistence
- * layer to leak into the controller signature.
+ * <p>Deliberately not the {@link User} entity: a detached entity in the security
+ * context would be a lazy-loading trap.
  */
 public record UserPrincipal(UUID id, String email) {
 

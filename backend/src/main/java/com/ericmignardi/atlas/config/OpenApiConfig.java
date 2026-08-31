@@ -6,11 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 
-/**
- * The document behind {@code /swagger-ui.html} (FR-8.6). springdoc derives every
- * path, schema, and status code from the controllers and DTOs; all this supplies
- * is the title block, so the two can never disagree about what the API does.
- */
+/** FR-8.6. springdoc derives the rest from the controllers and DTOs. */
 @Configuration
 public class OpenApiConfig {
 

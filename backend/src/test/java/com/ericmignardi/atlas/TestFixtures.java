@@ -13,12 +13,6 @@ import com.ericmignardi.atlas.task.Task;
 import com.ericmignardi.atlas.task.TaskStatus;
 import com.ericmignardi.atlas.user.User;
 
-/**
- * Unsaved, valid-by-construction entities. Every factory takes only what the
- * test actually cares about and fills the rest with something plausible, so a
- * test reads as the one thing it is asserting rather than as twelve setter
- * calls with one interesting line buried in them.
- */
 public final class TestFixtures {
 
 	private TestFixtures() {
@@ -31,7 +25,6 @@ public final class TestFixtures {
 	public static User user(String email) {
 		User user = new User();
 		user.setEmail(email);
-		// Not a real hash; nothing in these tests authenticates.
 		user.setPasswordHash("$2a$12$0123456789012345678901234567890123456789012345678901");
 		user.setDisplayName("Test User");
 		return user;

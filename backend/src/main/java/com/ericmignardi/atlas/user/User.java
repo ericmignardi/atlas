@@ -17,11 +17,8 @@ import lombok.Setter;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
- * The account (PRD 5.2). Every other user-owned row cascades from this one, so
- * deleting a user is a complete account delete with no orphans left behind.
- *
- * <p>{@code email} is stored lowercased and trimmed; the unique index is on
- * {@code lower(email)} so case can never split one account into two.
+ * Every other user-owned row cascades from this one, so deleting a user is a
+ * complete account delete with no orphans left behind.
  */
 @Entity
 @Table(name = "users")
@@ -35,10 +32,11 @@ public class User extends Auditable {
 	@Column(name = "id", nullable = false, updatable = false)
 	private UUID id;
 
+	/** Stored lowercased and trimmed; the unique index is on {@code lower(email)}. */
 	@Column(name = "email", nullable = false, length = 320)
 	private String email;
 
-	/** BCrypt output is always 60 characters, which is why the column is exactly that wide. */
+	/** NFR-2.1: BCrypt output is always 60 characters, hence the column width. */
 	@Column(name = "password_hash", nullable = false, length = 60)
 	private String passwordHash;
 
@@ -53,11 +51,10 @@ public class User extends Auditable {
 	private boolean enabled = true;
 
 	/*
-	 * Identity is the surrogate key and nothing else. Including email or any
-	 * other mutable field would change an entity's hash mid-session and lose it
-	 * inside a HashSet; including an association would trigger a lazy load from
-	 * inside a hash lookup. Hibernate.getClass unwraps proxies so a proxy and
-	 * its target still compare equal.
+	 * Identity is the surrogate key and nothing else. A mutable field would
+	 * change an entity's hash mid-session and lose it inside a HashSet; an
+	 * association would trigger a lazy load from inside a hash lookup.
+	 * Hibernate.getClass unwraps proxies so a proxy and its target compare equal.
 	 */
 	@Override
 	public boolean equals(Object o) {

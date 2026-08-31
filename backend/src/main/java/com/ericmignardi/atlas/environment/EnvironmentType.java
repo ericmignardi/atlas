@@ -1,6 +1,6 @@
 package com.ericmignardi.atlas.environment;
 
-/** PRD 5.8. Declared in display order. Persisted as a string. */
+/** FR-3.4. Declared in the display order of FR-3.5. Persisted as a string. */
 public enum EnvironmentType {
 	PRODUCTION,
 	PREVIEW,

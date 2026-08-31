@@ -27,12 +27,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-/**
- * PRD 6.3. Bind, delegate, map the response — and nothing else. Every rule this
- * endpoint enforces lives in {@link ProjectService}, so the same rule holds for
- * a future caller that is not HTTP, and so a controller test that passed would
- * not be evidence the rule works.
- */
 @RestController
 @RequestMapping("/api/projects")
 @RequiredArgsConstructor

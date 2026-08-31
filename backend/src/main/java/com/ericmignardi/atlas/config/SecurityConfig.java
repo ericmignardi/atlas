@@ -11,17 +11,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * The shape the real configuration takes on Day 5: stateless, no session, no
- * form login, no CSRF token — a token-based API has no cookie for an attacker
- * to ride.
+ * NFR-2.3 stateless, NFR-2.5 no CSRF token — correct only because the API is
+ * stateless and token-bearing, so there is no cookie for an attacker to ride.
  *
  * <p><strong>{@code /api/**} is open until Day 5.</strong> There is no way to
- * obtain a token yet, so requiring one would mean no endpoint could be exercised
- * at all. Ownership is still enforced underneath: every service call is scoped
- * to a {@link com.ericmignardi.atlas.security.UserPrincipal}, and
+ * obtain a token yet. Ownership is still enforced underneath: every service call
+ * is scoped to a {@link com.ericmignardi.atlas.security.UserPrincipal}, and
  * {@link com.ericmignardi.atlas.security.CurrentUserResolver} refuses to guess
- * when more than one account exists. Day 5 replaces the {@code permitAll} with
- * the JWT filter and nothing below this line has to change.
+ * when more than one account exists.
  */
 @Configuration
 @EnableWebSecurity
@@ -46,11 +43,7 @@ public class SecurityConfig {
 				.build();
 	}
 
-	/**
-	 * Strength 12, not the default 10 (PRD 5.2). Each increment doubles the work
-	 * factor; 12 costs roughly a quarter of a second per hash, which is
-	 * unnoticeable on a login and expensive on an offline dictionary attack.
-	 */
+	/** NFR-2.1: strength 12, not the default 10. */
 	@Bean
 	PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder(12);

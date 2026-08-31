@@ -9,13 +9,9 @@ import org.springframework.http.HttpStatus;
 import lombok.Getter;
 
 /**
- * 400, raised by hand for the rules Bean Validation cannot express — an
- * explicit {@code null} on a column that is NOT NULL, a {@code tagIds} entry
- * belonging to another account, a start date fifty-one years ago.
- *
- * <p>It carries the same {@code fields} map an annotation failure produces, so
- * the frontend attaches the message to the input either way (FR-8.4). That is
- * the entire reason this exists rather than a plain 400 with a sentence.
+ * 400 for rules Bean Validation cannot express. It carries the same
+ * {@code fields} map an annotation failure produces, so the frontend attaches
+ * the message to the input either way (FR-8.4).
  */
 @Getter
 public class ValidationException extends ApiException {
@@ -29,7 +25,6 @@ public class ValidationException extends ApiException {
 		this.fields = Map.copyOf(fields);
 	}
 
-	/** The common case: one field, one message. */
 	public static ValidationException of(String field, String message) {
 		Map<String, List<String>> fields = new LinkedHashMap<>();
 		fields.put(field, List.of(message));

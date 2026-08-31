@@ -1,7 +1,7 @@
 package com.ericmignardi.atlas.project;
 
 /**
- * PRD 5.8. Declared in display order. Persisted as a string, never an ordinal —
+ * FR-2.6. Declared in display order. Persisted as a string, never an ordinal —
  * inserting a value into the middle of this list must not silently reinterpret
  * every existing row.
  */

@@ -23,14 +23,7 @@ import com.ericmignardi.atlas.user.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Tags: create-or-return, the palette cycle, rename, delete (FR-5.1 – FR-5.9).
- *
- * <p>The entity never leaves this class. Controllers get records; the mapping
- * happens on the way out, inside the transaction, so a lazy association can
- * still be read without {@code open-in-view} propping the session open past the
- * end of the request.
- */
+/** FR-5.1 – FR-5.9. */
 @Service
 @RequiredArgsConstructor
 public class TagService {
@@ -38,7 +31,6 @@ public class TagService {
 	private final TagRepository tags;
 	private final UserRepository users;
 
-	/** The outcome of a create-or-return, because the two differ only in status code. */
 	public record TagCreation(TagResponse tag, boolean created) {
 	}
 
@@ -62,17 +54,15 @@ public class TagService {
 
 	/**
 	 * FR-5.3: a name that already exists returns the existing tag rather than
-	 * erroring, which is what lets the tag input on the frontend be a single
-	 * "add" action instead of a search-then-create dance.
+	 * erroring.
 	 *
 	 * <p><strong>Deliberately not {@code @Transactional}.</strong> Two callers
 	 * racing on the same new name both miss the lookup, both insert, and one
-	 * loses to the unique index. Recovering from that means re-reading the row
-	 * the winner wrote — and that read has to happen in a transaction that is
-	 * still usable. Inside one enclosing transaction it would not be: a failed
-	 * flush marks it rollback-only and every subsequent statement fails too. Each
-	 * repository call here is transactional on its own (Spring Data makes it so),
-	 * so the failed insert rolls back by itself and the re-read runs clean.
+	 * loses to the unique index. Recovering means re-reading the row the winner
+	 * wrote, and that read has to happen in a transaction that is still usable —
+	 * inside one enclosing transaction it would not be, because a failed flush
+	 * marks it rollback-only. Each repository call here is transactional on its
+	 * own, so the failed insert rolls back by itself and the re-read runs clean.
 	 */
 	public TagCreation findOrCreate(UUID userId, CreateTagRequest request) {
 		String name = normalise(request.name());

@@ -23,11 +23,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * A label (PRD 5.6). Per user, lowercased on write, reusable across projects.
- * There is no {@code updated_at} — a tag's name and colour are the whole row,
- * and the list view sorts by name — so this does not extend {@code Auditable}.
- */
+/** No {@code updated_at}, so this does not extend {@code Auditable}. */
 @Entity
 @Table(name = "tags")
 @EntityListeners(AuditingEntityListener.class)
@@ -44,13 +40,14 @@ public class Tag {
 	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
 
+	/** FR-5.2: lowercased on write, unique per user. */
 	@Column(name = "name", nullable = false, length = 50)
 	private String name;
 
 	/**
-	 * {@code #RRGGBB}, so a fixed-width CHAR(7). The explicit JDBC type code
-	 * matters: without it Hibernate expects VARCHAR and {@code ddl-auto: validate}
-	 * refuses to start against the CHAR column the migration created.
+	 * The explicit JDBC type code matters: without it Hibernate expects VARCHAR
+	 * and {@code ddl-auto: validate} refuses to start against the CHAR column the
+	 * migration created.
 	 */
 	@JdbcTypeCode(SqlTypes.CHAR)
 	@Column(name = "color", nullable = false, length = 7, columnDefinition = "char(7)")

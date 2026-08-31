@@ -38,17 +38,8 @@ import com.ericmignardi.atlas.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Development data. Active only on the {@code dev} profile, so the container —
- * which runs with {@code prod} — never sees it.
- *
- * <p><strong>Idempotent.</strong> It checks for the demo user and returns early
- * if the account already exists, so restarting the application does not stack up
- * five more projects every time DevTools reloads.
- *
- * <p>The content is deliberately realistic — real project names, real branch
- * names, plausible Neon connection strings. This is the data every screen gets
- * designed against for the next eight days, and placeholder rows make both the
- * design decisions and the eventual screenshots worse.
+ * Idempotent: it returns early if the demo account already exists, so a DevTools
+ * reload does not stack up five more projects every time.
  */
 @Component
 @Profile("dev")
@@ -101,8 +92,7 @@ public class DevDataSeeder implements CommandLineRunner {
 			Tag tag = new Tag();
 			tag.setUser(user);
 			tag.setName(name);
-			// FR-5.4: the colour follows the user's tag count, so a fresh set
-			// cycles through the palette instead of coming out all blue.
+			// FR-5.4: the colour follows the tag count, so a fresh set cycles.
 			tag.setColor(TagPalette.nextColour(index++));
 			byName.put(name, tagRepository.save(tag));
 		}
@@ -187,7 +177,6 @@ public class DevDataSeeder implements CommandLineRunner {
 		Project sonder = projects.get(2);
 		Project meridian = projects.get(3);
 
-		// Atlas — a full set, both types paired app-to-database.
 		Environment atlasProd = env(atlas, "Production", Platform.VERCEL, EnvironmentType.PRODUCTION,
 				"main", "https://atlas.ericmignardi.com",
 				"Azure Static Web Apps in front of Container Apps.");
@@ -208,7 +197,6 @@ public class DevDataSeeder implements CommandLineRunner {
 		pair(atlasProd, atlasProdDb);
 		pair(atlasPreview, atlasPreviewDb);
 
-		// Northwind — shipped, so production is the interesting half.
 		Environment nwProd = env(northwind, "Production", Platform.VERCEL, EnvironmentType.PRODUCTION,
 				"main", "https://northwinddental.ca", "DNS at Cloudflare, apex + www.");
 		Environment nwProdDb = env(northwind, "Sanity — production", Platform.OTHER,
@@ -222,7 +210,6 @@ public class DevDataSeeder implements CommandLineRunner {
 
 		pair(nwProd, nwProdDb);
 
-		// Sonder — the busiest project, two paired types plus a spare preview.
 		Environment sonderProd = env(sonder, "Production", Platform.VERCEL, EnvironmentType.PRODUCTION,
 				"main", "https://shop.sondercoffee.ca",
 				"Stripe live keys. Do not point this at a test branch.");
@@ -248,7 +235,6 @@ public class DevDataSeeder implements CommandLineRunner {
 		pair(sonderProd, sonderProdDb);
 		pair(sonderPreview, sonderPreviewDb);
 
-		// Meridian — paused, so nothing is deployed and nothing is paired.
 		env(meridian, "Staging", Platform.VERCEL, EnvironmentType.PREVIEW,
 				"main", "https://meridian-invoicing.vercel.app",
 				"Sleeping. Redeploy before the October restart.");
@@ -258,8 +244,6 @@ public class DevDataSeeder implements CommandLineRunner {
 		env(meridian, "Local", Platform.LOCAL, EnvironmentType.DEVELOPMENT,
 				"main", "jdbc:postgresql://localhost:5432/meridian", null);
 
-		// Fieldnote is an idea. Ideas have no environments, and the empty state
-		// is a screen that has to be designed too.
 	}
 
 	private Environment env(Project project, String name, Platform platform, EnvironmentType type,
@@ -276,15 +260,12 @@ public class DevDataSeeder implements CommandLineRunner {
 		return environmentRepository.save(environment);
 	}
 
-	/**
-	 * Only one side writes. {@code paired_with_id} is UNIQUE and lives on the
-	 * owning side, so setting {@code b.pairedWith = a} as well would put a second
-	 * row's claim on the same column value — the database, correctly, refuses it.
-	 * The symmetry of FR-3.7 is read back through {@code pairedBy}.
-	 */
+	/** FR-3.7: both sides, exactly as EnvironmentPairingService writes them. */
 	private void pair(Environment app, Environment database) {
 		app.setPairedWith(database);
+		database.setPairedWith(app);
 		environmentRepository.save(app);
+		environmentRepository.save(database);
 	}
 
 	private record TaskSeed(String title, Project project, TaskStatus status, TaskPriority priority,
@@ -301,7 +282,6 @@ public class DevDataSeeder implements CommandLineRunner {
 		Instant now = Instant.now();
 
 		List<TaskSeed> seeds = Arrays.asList(
-				// Overdue — the state the dashboard has to make impossible to miss.
 				new TaskSeed("Send Northwind the June maintenance invoice", northwind, TaskStatus.TODO,
 						TaskPriority.URGENT, -6L, "Three content changes and the booking-form fix."),
 				new TaskSeed("Rotate the Sonder Stripe restricted key", sonder, TaskStatus.TODO,
@@ -311,7 +291,6 @@ public class DevDataSeeder implements CommandLineRunner {
 				new TaskSeed("Renew the northwinddental.ca certificate", northwind, TaskStatus.TODO,
 						TaskPriority.HIGH, -2L, null),
 
-				// Due today and this week.
 				new TaskSeed("Write the Flyway migrations for Atlas", atlas, TaskStatus.IN_PROGRESS,
 						TaskPriority.HIGH, 0L, "Seven files, one per concern. Never edit an applied one."),
 				new TaskSeed("Map the Environment self-relation", atlas, TaskStatus.IN_PROGRESS,
@@ -329,7 +308,6 @@ public class DevDataSeeder implements CommandLineRunner {
 				new TaskSeed("Book the Q4 hosting review", null, TaskStatus.TODO, TaskPriority.LOW, 6L,
 						"Vercel and Neon spend across all four client projects."),
 
-				// Further out.
 				new TaskSeed("Frontend foundation — shell, router, auth store", atlas, TaskStatus.TODO,
 						TaskPriority.HIGH, 7L, null),
 				new TaskSeed("Dashboard and command palette", atlas, TaskStatus.TODO,
@@ -341,7 +319,6 @@ public class DevDataSeeder implements CommandLineRunner {
 				new TaskSeed("Prototype Fieldnote sync conflict handling", fieldnote, TaskStatus.TODO,
 						TaskPriority.LOW, 21L, "Last-write-wins is not good enough for site notes."),
 
-				// No due date — the third of the three list states.
 				new TaskSeed("Read up on Postgres partial indexes", null, TaskStatus.TODO,
 						TaskPriority.LOW, null, null),
 				new TaskSeed("Consolidate the two Neon accounts", null, TaskStatus.BLOCKED,
@@ -349,7 +326,7 @@ public class DevDataSeeder implements CommandLineRunner {
 				new TaskSeed("Decide whether Fieldnote is worth starting", fieldnote, TaskStatus.TODO,
 						TaskPriority.LOW, null, null),
 
-				// Done, within the 7-day window the board shows (FR-4.12).
+				// Done, within the seven-day window of FR-4.12.
 				new TaskSeed("Scaffold the Spring Boot and Vite applications", atlas, TaskStatus.DONE,
 						TaskPriority.HIGH, -1L, null),
 				new TaskSeed("Write both Dockerfiles and prove the images run", atlas, TaskStatus.DONE,
@@ -359,7 +336,6 @@ public class DevDataSeeder implements CommandLineRunner {
 				new TaskSeed("Sonder — fix the cart total rounding", sonder, TaskStatus.DONE,
 						TaskPriority.URGENT, -5L, "Half-up on the line, not on the total."),
 
-				// Done and older, so it falls outside the board's window but stays in the list.
 				new TaskSeed("Write the PRD and the ten-day plan", atlas, TaskStatus.DONE,
 						TaskPriority.HIGH, -12L, null));
 

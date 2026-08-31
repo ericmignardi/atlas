@@ -18,15 +18,10 @@ import com.ericmignardi.atlas.task.TaskRepository;
 import com.ericmignardi.atlas.user.UserRepository;
 
 /**
- * The seeder is the only bean in the application that writes on startup, which
- * makes it the only one that can quietly corrupt a developer's database. It runs
- * on every boot, and DevTools reboots on every recompile, so "idempotent" is not
- * a nicety — without it a morning's work leaves fifty projects behind.
- *
- * <p>This is the one test that does not extend {@code AbstractIntegrationTest}:
- * it needs the {@code dev} profile, and a different profile is a different
- * context-cache key anyway. Spring Boot does not invoke {@code CommandLineRunner}
- * beans in a test context, so the run is explicit here.
+ * The one test that does not extend {@code AbstractIntegrationTest}: it needs the
+ * {@code dev} profile, which is a different context-cache key anyway. Spring Boot
+ * does not invoke {@code CommandLineRunner} beans in a test context, so the run
+ * is explicit here.
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
@@ -70,9 +65,11 @@ class DevDataSeederTest {
 		assertThat(tagRepository.count()).isEqualTo(8);
 		assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM project_tags", Integer.class))
 				.isEqualTo(14);
+		// Five pairs, ten rows: pairing writes both columns (FR-3.7), so the
+		// seed looks exactly like data the pairing service produced.
 		assertThat(jdbcTemplate.queryForObject(
 				"SELECT count(*) FROM environments WHERE paired_with_id IS NOT NULL", Integer.class))
-				.isEqualTo(5);
+				.isEqualTo(10);
 
 		seeder.run();
 

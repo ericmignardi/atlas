@@ -9,10 +9,8 @@ import org.junit.jupiter.api.Test;
 import com.ericmignardi.atlas.AbstractWebIntegrationTest;
 
 /**
- * FR-8.6. The document is generated, so this is not testing springdoc — it is
- * testing that every endpoint is <em>reachable</em> by it. A controller left out
- * of the component scan, or a DTO springdoc cannot introspect, shows up here and
- * nowhere else until somebody opens the page by hand.
+ * FR-8.6. Not a test of springdoc: a controller left out of the component scan,
+ * or a DTO springdoc cannot introspect, shows up here and nowhere else.
  */
 class OpenApiDocumentIT extends AbstractWebIntegrationTest {
 

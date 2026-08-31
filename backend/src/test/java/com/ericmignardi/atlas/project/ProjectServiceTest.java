@@ -38,11 +38,6 @@ import com.ericmignardi.atlas.task.TaskRepository;
 import com.ericmignardi.atlas.user.User;
 import com.ericmignardi.atlas.user.UserRepository;
 
-/**
- * The rules, with the database mocked away. The point of testing them here
- * rather than only through MockMvc is that a failure names the rule that broke
- * instead of a status code that could have come from anywhere.
- */
 @ExtendWith(MockitoExtension.class)
 class ProjectServiceTest {
 

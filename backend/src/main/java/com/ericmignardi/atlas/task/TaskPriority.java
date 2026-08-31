@@ -1,6 +1,6 @@
 package com.ericmignardi.atlas.task;
 
-/** PRD 5.8. Declared low to high. Persisted as a string. */
+/** FR-4.4. Declared low to high. Persisted as a string. */
 public enum TaskPriority {
 	LOW,
 	MEDIUM,

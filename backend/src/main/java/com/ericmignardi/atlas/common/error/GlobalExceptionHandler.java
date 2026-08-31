@@ -30,17 +30,11 @@ import jakarta.validation.ConstraintViolationException;
 import tools.jackson.core.JacksonException;
 
 /**
- * Every failure leaves the application through here, in the shape of PRD 6.1.
- * One advice, one body, no per-controller try/catch — which is the only way the
- * error handling on the other side can be written once.
- *
- * <p>Resolution is by <em>most specific</em> exception type, not by declaration
- * order, so the catch-all {@code Exception} handler at the bottom only sees what
- * nothing above it claimed. That is also why it has to reason about
- * {@link org.springframework.web.ErrorResponse}: the framework's own exceptions
- * — unknown path, wrong method, missing parameter — already carry the right
- * status, and letting the catch-all turn those into 500s is a regression you
- * notice only in production logs.
+ * Resolution is by most specific exception type, not declaration order, so the
+ * catch-all only sees what nothing above it claimed. That is also why it reasons
+ * about {@link org.springframework.web.ErrorResponse}: the framework's own
+ * exceptions already carry the right status, and letting the catch-all turn
+ * those into 500s is a regression you notice only in production logs.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -49,7 +43,6 @@ public class GlobalExceptionHandler {
 
 	private static final String VALIDATION_FAILED = "Validation failed";
 
-	/** NotFound, Conflict, and everything else raised on purpose. */
 	@ExceptionHandler(ApiException.class)
 	public ResponseEntity<ErrorResponse> handleApi(ApiException ex, HttpServletRequest request) {
 		if (ex instanceof ValidationException validation) {
@@ -60,7 +53,7 @@ public class GlobalExceptionHandler {
 				.body(ErrorResponse.of(ex.getStatus(), ex.getMessage(), ex.getCode(), request));
 	}
 
-	/** A {@code @Valid @RequestBody} failed. This is the handler FR-8.4 rests on. */
+	/** The handler FR-8.4 rests on. */
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ErrorResponse> handleBodyValidation(MethodArgumentNotValidException ex,
 			HttpServletRequest request) {
@@ -75,7 +68,6 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.badRequest().body(ErrorResponse.validation(VALIDATION_FAILED, fields, request));
 	}
 
-	/** {@code @Validated} on a path variable or request parameter, Spring 6 style. */
 	@ExceptionHandler(HandlerMethodValidationException.class)
 	public ResponseEntity<ErrorResponse> handleParameterValidation(HandlerMethodValidationException ex,
 			HttpServletRequest request) {
@@ -88,7 +80,6 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.badRequest().body(ErrorResponse.validation(VALIDATION_FAILED, fields, request));
 	}
 
-	/** The same shape again, for violations raised outside the MVC binding path. */
 	@ExceptionHandler(ConstraintViolationException.class)
 	public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex,
 			HttpServletRequest request) {
@@ -100,11 +91,7 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.badRequest().body(ErrorResponse.validation(VALIDATION_FAILED, fields, request));
 	}
 
-	/**
-	 * Unparseable or mistyped JSON: {@code "status": "NOPE"}, a malformed date, a
-	 * trailing comma. Jackson records which property it choked on, so most of
-	 * these recover into the same field-level shape instead of a bare 400.
-	 */
+	/** Jackson records which property it choked on, so most of these recover into a field-level shape. */
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	public ResponseEntity<ErrorResponse> handleUnreadableBody(HttpMessageNotReadableException ex,
 			HttpServletRequest request) {
@@ -124,7 +111,6 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.badRequest().body(ErrorResponse.validation(VALIDATION_FAILED, fields, request));
 	}
 
-	/** A path variable or query parameter that will not convert — a non-UUID id. */
 	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
 	public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
 			HttpServletRequest request) {
@@ -150,11 +136,7 @@ public class GlobalExceptionHandler {
 				.body(ErrorResponse.of(HttpStatus.FORBIDDEN, "You do not have access to that", request));
 	}
 
-	/**
-	 * A constraint the service did not catch first. The real message names the
-	 * index and quotes the row, so it is logged and not returned (NFR-2.7): the
-	 * caller learns that something conflicted, not what the schema looks like.
-	 */
+	/** NFR-2.7: the real message names the index and quotes the row, so it is logged, not returned. */
 	@ExceptionHandler(DataIntegrityViolationException.class)
 	public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex,
 			HttpServletRequest request) {
@@ -166,9 +148,9 @@ public class GlobalExceptionHandler {
 	}
 
 	/**
-	 * The backstop. A correlation id goes into both the log line and the response
-	 * so a report of "it broke" can be matched to a stack trace without the stack
-	 * trace ever crossing the wire.
+	 * NFR-2.7. A correlation id goes into both the log line and the response, so
+	 * a report of "it broke" can be matched to a stack trace without the trace
+	 * ever crossing the wire.
 	 */
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
@@ -185,10 +167,7 @@ public class GlobalExceptionHandler {
 						"Something went wrong. Reference " + correlationId, request));
 	}
 
-	/**
-	 * Spring MVC exceptions already carry the status they deserve. 5xx is
-	 * deliberately excluded — those still take the correlation-id path.
-	 */
+	/** 5xx is excluded: those still take the correlation-id path. */
 	private static HttpStatus delegatedStatus(Exception ex) {
 		if (!(ex instanceof org.springframework.web.ErrorResponse errorResponse)) {
 			return null;
@@ -208,11 +187,10 @@ public class GlobalExceptionHandler {
 	}
 
 	/**
-	 * Keys the map on the JSON field name (FR-8.4) so an error can be looked up
-	 * by the name of the input that produced it. Container-element constraints —
-	 * the {@code JsonNullable<@Size String>} on every PATCH DTO — come out of
-	 * Hibernate Validator as {@code name[].<jsonnullable>}, which would match no
-	 * input at all, so everything from the first bracket is dropped.
+	 * FR-8.4: keyed on the JSON field name. Container-element constraints — the
+	 * {@code JsonNullable} on every PATCH DTO — come out of Hibernate Validator
+	 * as {@code name[].<jsonnullable>}, which would match no input at all, so
+	 * everything from the first bracket is dropped.
 	 */
 	private static void add(Map<String, List<String>> fields, String rawField, String message) {
 		fields.computeIfAbsent(normalize(rawField), key -> new ArrayList<>())

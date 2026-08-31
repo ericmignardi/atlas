@@ -7,16 +7,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Injects the authenticated caller into a controller method:
- *
- * <pre>{@code
- * public List<ProjectResponse> list(@CurrentUser UserPrincipal user) { ... }
- * }</pre>
- *
- * <p>One annotation rather than each controller reaching into
- * {@code SecurityContextHolder} by hand — the parameter is visible in the method
- * signature, which makes "does this endpoint know who is calling" answerable by
- * reading it, and it is trivially stubbed in a test.
+ * Injects the authenticated caller into a controller method.
  *
  * @see CurrentUserArgumentResolver
  */

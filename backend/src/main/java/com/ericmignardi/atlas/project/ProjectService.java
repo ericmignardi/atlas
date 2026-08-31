@@ -36,13 +36,8 @@ import com.ericmignardi.atlas.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Everything a project can have done to it (FR-2.1 – FR-2.14).
- *
- * <p>Two rules hold throughout. Every repository call is scoped to the caller,
- * so another account's project is indistinguishable from one that does not
- * exist. And the entity never leaves: responses are built here, inside the
- * transaction, which is what lets the lazy tag association be read with
- * {@code open-in-view} switched off.
+ * FR-2.1 – FR-2.14. Responses are built here, inside the transaction, which is
+ * what lets the lazy tag association be read with {@code open-in-view} off.
  */
 @Service
 @RequiredArgsConstructor
@@ -51,7 +46,6 @@ public class ProjectService {
 	/** FR-2.8. */
 	static final int MAX_PINNED = 4;
 
-	/** PRD 7.2, the sanity window on a start date. */
 	private static final int MAX_YEARS_PAST = 50;
 	private static final int MAX_YEARS_FUTURE = 1;
 
@@ -116,17 +110,17 @@ public class ProjectService {
 	}
 
 	/**
-	 * PRD 6.9. Each field is applied only when the key was present, so
-	 * {@code {}} is a no-op and {@code {"client": null}} clears exactly one
-	 * column. Reading this method is how you check that: every line is an
-	 * {@code ifPresent}, and there is no {@code else}.
+	 * Each field is applied only when the key was present, so {@code {}} is a
+	 * no-op and {@code {"client": null}} clears exactly one column. Reading this
+	 * method is how you check that: every line is an {@code ifPresent}, and there
+	 * is no {@code else}.
 	 */
 	@Transactional
 	public ProjectResponse update(UUID userId, UUID id, UpdateProjectRequest request) {
 		Project project = require(userId, id);
 
-		// FR-2.5: a rename regenerates the slug under the same uniqueness rule,
-		// excluding this project so it does not collide with its own old slug.
+		// FR-2.5: a rename regenerates the slug, excluding this project so it
+		// does not collide with its own old slug.
 		request.getName().ifPresent(name -> {
 			project.setName(name.trim());
 			project.setSlug(slugs.uniqueSlug(name, userId, project.getId()));
@@ -149,8 +143,7 @@ public class ProjectService {
 
 	/**
 	 * FR-2.11. Environments cascade from the mapping; tasks do not, because they
-	 * are not mapped here at all — the foreign key is ON DELETE SET NULL, so the
-	 * work survives the project it was filed under.
+	 * are not mapped here at all — the foreign key is ON DELETE SET NULL.
 	 */
 	@Transactional
 	public void delete(UUID userId, UUID id) {
@@ -195,7 +188,7 @@ public class ProjectService {
 		List<Tag> resolved = wanted.isEmpty() ? List.of()
 				: tags.findByIdInAndUserId(new ArrayList<>(wanted), userId);
 		if (resolved.size() != wanted.size()) {
-			// A tag that belongs to somebody else is reported as unknown, not as
+			// A tag belonging to somebody else is reported as unknown, not as
 			// forbidden — confirming it exists would be the disclosure.
 			throw ValidationException.of("tagIds", "contains a tag that does not exist");
 		}
@@ -210,7 +203,7 @@ public class ProjectService {
 				.forEach(tag -> project.getTags().add(new ProjectTag(project, tag)));
 	}
 
-	/** PRD 7.2: duplicates removed, order preserved, blanks dropped. */
+	/** Duplicates removed, order preserved, blanks dropped. */
 	private List<String> normaliseTechStack(List<String> raw) {
 		if (raw == null) {
 			return new ArrayList<>();
@@ -231,9 +224,9 @@ public class ProjectService {
 	}
 
 	/**
-	 * A typo in a year is the realistic failure here — 2206 instead of 2026 —
-	 * and it is invisible on a card but poisons every date sort. Bean Validation
-	 * has no annotation for "within this window", so it is a check.
+	 * A typo in a year is the realistic failure — 2206 instead of 2026 — and it is
+	 * invisible on a card but poisons every date sort. Bean Validation has no
+	 * annotation for "within this window", so it is a check.
 	 */
 	private LocalDate checkStartedAt(LocalDate startedAt) {
 		if (startedAt == null) {
@@ -275,9 +268,9 @@ public class ProjectService {
 	}
 
 	/**
-	 * Three grouped queries for a whole list, instead of three per project. A
-	 * project with nothing to count is absent from every map, which is why each
-	 * lookup defaults to zero rather than assuming a row.
+	 * Three grouped queries for a whole list instead of three per project
+	 * (NFR-1.2). A project with nothing to count is absent from every map, which
+	 * is why each lookup defaults to zero.
 	 */
 	private record CountLookup(Map<UUID, Long> environments, Map<UUID, Long> open,
 			Map<UUID, Long> overdue) {

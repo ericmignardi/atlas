@@ -34,13 +34,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * A project (PRD 5.3) — the aggregate root the rest of the portal hangs off.
- *
- * <p>Two child collections, two different lifecycles. Environments are owned
- * outright and die with the project. Tasks are <em>not</em> mapped here at all:
- * a task belongs to the user, survives the project's deletion, and is reached
- * through {@code TaskRepository}, so putting a {@code @OneToMany} of tasks on
- * this class would invite exactly the cascade the schema is designed to avoid.
+ * Tasks are deliberately not mapped here: a task belongs to the user and
+ * survives the project's deletion (FR-4.5), so a {@code @OneToMany} of tasks
+ * would invite exactly the cascade the schema is designed to avoid.
  */
 @Entity
 @Table(name = "projects")
@@ -61,7 +57,7 @@ public class Project extends Auditable {
 	@Column(name = "name", nullable = false, length = 120)
 	private String name;
 
-	/** Unique per user, not globally — two accounts may both own {@code /atlas}. */
+	/** FR-2.4: unique per user, not globally. */
 	@Column(name = "slug", nullable = false, length = 140)
 	private String slug;
 
@@ -85,10 +81,9 @@ public class Project extends Auditable {
 	private String engagement;
 
 	/**
-	 * A real Postgres {@code text[]}, not a comma-joined string and not a child
-	 * table. {@code @JdbcTypeCode(ARRAY)} is what tells Hibernate to bind it
-	 * through {@code java.sql.Array} — this is the mapping H2 could not have
-	 * modelled, and the reason the tests run against real Postgres (NFR-3.4).
+	 * A real Postgres {@code text[]}. {@code @JdbcTypeCode(ARRAY)} is what tells
+	 * Hibernate to bind it through {@code java.sql.Array}, and it is the mapping
+	 * H2 could not have modelled (NFR-3.4).
 	 */
 	@JdbcTypeCode(SqlTypes.ARRAY)
 	@Column(name = "tech_stack", nullable = false, columnDefinition = "text[]")
@@ -100,7 +95,7 @@ public class Project extends Auditable {
 	@Column(name = "started_at")
 	private LocalDate startedAt;
 
-	/** Owned outright: environments have no meaning without their project. */
+	/** FR-2.11: owned outright, so environments die with the project. */
 	@OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
 	private Set<Environment> environments = new LinkedHashSet<>();
 

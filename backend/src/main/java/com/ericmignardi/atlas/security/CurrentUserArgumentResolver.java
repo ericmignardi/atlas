@@ -10,12 +10,6 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Turns {@code @CurrentUser UserPrincipal} in a controller signature into the
- * caller. Both halves of the check matter: the annotation says the parameter is
- * meant for this, the type says it can hold the result, and requiring both
- * keeps the resolver from quietly claiming some other {@code UserPrincipal}
- * parameter later.
- *
  * @see com.ericmignardi.atlas.config.WebConfig
  */
 @Component
@@ -26,6 +20,8 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
+		// Both halves matter: the annotation says the parameter is meant for
+		// this, the type says it can hold the result.
 		return parameter.hasParameterAnnotation(CurrentUser.class)
 				&& UserPrincipal.class.isAssignableFrom(parameter.getParameterType());
 	}

@@ -26,7 +26,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-/** PRD 6.6. Bind, delegate, map the response. No business logic lives here. */
 @RestController
 @RequestMapping("/api/tags")
 @RequiredArgsConstructor
@@ -49,11 +48,7 @@ public class TagController {
 		return tagService.get(user.id(), id);
 	}
 
-	/**
-	 * Create or return (FR-5.3). 201 when the tag is new, 200 when it already
-	 * existed — the caller gets the same body either way and can tell which
-	 * happened from the status, which is what makes this safe to call blindly.
-	 */
+	/** FR-5.3: 201 when the tag is new, 200 when it already existed. */
 	@PostMapping
 	@Operation(summary = "Create a tag, or return the existing one with that name")
 	public ResponseEntity<TagResponse> create(@CurrentUser UserPrincipal user,

@@ -24,11 +24,6 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * A task (PRD 5.5). It belongs to the <em>user</em>, and only optionally to a
- * project: deleting a project must not delete the work, so {@code project} is
- * nullable and the foreign key is ON DELETE SET NULL.
- */
 @Entity
 @Table(name = "tasks")
 @EntityListeners(AuditingEntityListener.class)
@@ -45,7 +40,7 @@ public class Task extends Auditable {
 	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
 
-	/** Optional. Nulled, not cascaded, when the project is deleted. */
+	/** FR-4.5. Nulled, not cascaded, when the project is deleted. */
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "project_id")
 	private Project project;
@@ -67,14 +62,11 @@ public class Task extends Auditable {
 	@Column(name = "due_date")
 	private Instant dueDate;
 
-	/**
-	 * Signed, and allowed to go negative. A new task lands on top of its column
-	 * by taking {@code min(sortOrder) - 1}, which reorders nothing else (FR-4.7).
-	 */
+	/** FR-4.7. Signed, and allowed to go negative, so nothing renumbers. */
 	@Column(name = "sort_order", nullable = false)
 	private int sortOrder = 0;
 
-	/** Server-controlled: set when the status becomes DONE, cleared when it leaves. */
+	/** FR-4.6. Server-controlled. */
 	@Column(name = "completed_at")
 	private Instant completedAt;
 

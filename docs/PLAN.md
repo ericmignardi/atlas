@@ -48,7 +48,7 @@ Fill in as you go. This is the honest record.
 | 1 | Mon Aug 31 | Foundations + walking skeleton | Done | Boot 4.1.1, not the 3.5.x in §1.3 — Initializr no longer offers 3.5. Starter names, Testcontainers 2.x, and springdoc 3.1.0 follow from that. All Azure work moved to [§10.1](#101-azure-account-and-first-deployment) pending the free account; §1.7 now ends at container images, both of which build and run. See [R-12](#risk-register). |
 | 2 | Tue Sep 1 | Persistence | Done | Seven migrations, seven entities, six repositories, 38 green tests. Two deliberate departures from §2.5 and §2.2, both forced by the Boot 4.1.1 / Testcontainers 2.x stack from Day 1: the container is a shared static `@ServiceConnection` bean rather than `@Container` + `@DynamicPropertySource`, and `ProjectTag.equals` compares the two association ids rather than the `@EmbeddedId` — `@MapsId` leaves the key null until flush, so the documented id-only rule collapses a whole `Set` of new join rows into one. Added `flyway-maven-plugin` so the `flyway:info` check is real. BCrypt raised to strength 12 per [PRD §5.2](./PRD.md#52-users). |
 | 3 | Wed Sep 2 | Projects + Tags API | | |
-| 4 | Thu Sep 3 | Environments + Tasks API | | |
+| 4 | Thu Sep 3 | Environments + Tasks API | Done | `EnvironmentPairingService`, `EnvironmentService`, `TaskService`, both controllers, and 33 new tests — 142 green. Three departures from §4.1 – §4.5. Pairing writes **both** `paired_with_id` columns and flushes between release and assign: §4.1 assumed the flush ordering was safe, and it is not — Hibernate may emit the assignment before the release inside one flush and hit the UNIQUE constraint. `releasePartner` also clears the inverse `pairedBy` on every object it touches; leaving it stale makes Hibernate refuse the flush when the released row is then deleted. And `needsAttention` partitions on `!due.isBefore(endOfToday)` rather than §4.5's `isAfter(endOfDay)`, so the three buckets are exhaustive at the boundary instead of dropping a task due exactly at midnight. `DevDataSeeder.pair` updated to write both sides too, so the seed matches what the service produces (the assertion in `DevDataSeederTest` moves from 5 rows to 10). |
 | 5 | Fri Sep 4 | Spring Security | | |
 | 6 | Mon Sep 7 | Frontend foundation | | |
 | 7 | Tue Sep 8 | Projects + Tags UI | | |
@@ -1203,17 +1203,17 @@ done → not overdue), and the three-way needs-attention partition.
 
 ### Done when
 
-- [ ] Every row of the table in §4.6 is a passing test
-- [ ] `GET /api/environments/grouped?projectId=…` returns three groups in the fixed order
-- [ ] An application with no database partner appears as a row with a null `database`
-- [ ] An orphan Neon environment appears in `orphanDatabases`
-- [ ] A new task's `sortOrder` is lower than every other task in that column
-- [ ] The first task in an empty column does not throw
-- [ ] `PUT /api/tasks/{id}/move` persists both status and position
-- [ ] `POST /api/tasks` with `completedAt` in the body ignores it
-- [ ] `needs-attention` partitions correctly across the three buckets
-- [ ] A 600-character Neon connection string is accepted in `url`
-- [ ] Environment writes bump the project's `updatedAt`
+- [x] Every row of the table in §4.6 is a passing test
+- [x] `GET /api/environments/grouped?projectId=…` returns three groups in the fixed order
+- [x] An application with no database partner appears as a row with a null `database`
+- [x] An orphan Neon environment appears in `orphanDatabases`
+- [x] A new task's `sortOrder` is lower than every other task in that column
+- [x] The first task in an empty column does not throw
+- [x] `PUT /api/tasks/{id}/move` persists both status and position
+- [x] `POST /api/tasks` with `completedAt` in the body ignores it
+- [x] `needs-attention` partitions correctly across the three buckets
+- [x] A 600-character Neon connection string is accepted in `url`
+- [x] Environment writes bump the project's `updatedAt`
 
 ### Learning notes
 

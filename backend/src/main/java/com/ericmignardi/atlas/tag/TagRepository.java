@@ -10,8 +10,8 @@ import org.springframework.data.jpa.repository.Query;
 import com.ericmignardi.atlas.tag.dto.TagUsage;
 
 /**
- * {@code project_tags} has no repository of its own: the join rows are only
- * ever reached through {@code Project.getTags()}, which cascades them.
+ * {@code project_tags} has no repository of its own: the join rows are only ever
+ * reached through {@code Project.getTags()}, which cascades them.
  */
 public interface TagRepository extends JpaRepository<Tag, UUID> {
 
@@ -21,7 +21,7 @@ public interface TagRepository extends JpaRepository<Tag, UUID> {
 
 	List<Tag> findByUserIdOrderByNameAsc(UUID userId);
 
-	/** Backs {@code GET /api/tags?q=} — the autocomplete behind FR-5.10. */
+	/** The autocomplete behind FR-5.10. */
 	List<Tag> findByUserIdAndNameContainingIgnoreCaseOrderByNameAsc(UUID userId, String fragment);
 
 	/** The palette cycle of FR-5.4 is a function of this number. */
@@ -30,9 +30,9 @@ public interface TagRepository extends JpaRepository<Tag, UUID> {
 	List<Tag> findByIdInAndUserId(List<UUID> ids, UUID userId);
 
 	/**
-	 * Every tag's usage count in one query (FR-5.6). Tags used by nothing are
-	 * absent from the result rather than present with a zero — an inner join
-	 * cannot produce a row for them — so the caller defaults a miss to zero.
+	 * FR-5.6 in one query. Tags used by nothing are absent from the result rather
+	 * than present with a zero — an inner join cannot produce a row for them — so
+	 * the caller defaults a miss to zero.
 	 */
 	@Query("""
 			SELECT new com.ericmignardi.atlas.tag.dto.TagUsage(pt.tag.id, COUNT(pt))

@@ -12,10 +12,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * The composite key of {@code project_tags}. An {@code @Embeddable} id class
- * must be {@link Serializable} and must implement {@code equals}/{@code hashCode}
- * over <em>all</em> its fields — unlike an entity, a key <em>is</em> its values,
- * and Hibernate uses them to look rows up in the persistence context.
+ * An {@code @Embeddable} id class must be {@link Serializable} and must
+ * implement {@code equals}/{@code hashCode} over all its fields — unlike an
+ * entity, a key is its values, and Hibernate uses them to look rows up in the
+ * persistence context.
  */
 @Embeddable
 @Getter

@@ -6,12 +6,8 @@ import java.util.Locale;
 import com.ericmignardi.atlas.project.Project;
 
 /**
- * FR-2.13. The four orders the list offers, as comparators rather than as
- * fragments of SQL: the list query fetch-joins tags, so it already returns a
- * whole page of the user's projects in one round trip, and re-ordering that in
- * memory costs nothing a personal portal will ever notice. Building the ORDER BY
- * from a request parameter is also the classic way to hand a caller control of
- * the query — this way the parameter can only select from a closed set.
+ * FR-2.13. Comparators rather than fragments of SQL: building an ORDER BY from
+ * a request parameter hands a caller control of the query.
  */
 public enum ProjectSort {
 
@@ -27,11 +23,7 @@ public enum ProjectSort {
 		this.comparator = comparator;
 	}
 
-	/**
-	 * Pinned projects lead every order (FR-6.x pins them to the dashboard, and a
-	 * list that disagreed with the dashboard would be its own bug), then the
-	 * chosen key.
-	 */
+	/** FR-2.8: pinned projects lead every order, so the list agrees with the dashboard. */
 	public Comparator<Project> comparator() {
 		return Comparator.comparing(Project::isPinned).reversed().thenComparing(comparator);
 	}

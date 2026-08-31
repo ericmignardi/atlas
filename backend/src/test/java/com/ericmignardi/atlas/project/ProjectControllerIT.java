@@ -28,15 +28,6 @@ import com.ericmignardi.atlas.user.User;
 import com.ericmignardi.atlas.user.UserRepository;
 import com.jayway.jsonpath.JsonPath;
 
-/**
- * The whole {@code /api/projects} surface over real HTTP, against real Postgres:
- * status codes, the error shape, and the PATCH semantics of PRD 6.9.
- *
- * <p>These are the tests the day is graded on. The service tests prove the rules
- * in isolation; these prove the rules survive binding, validation, the exception
- * handler, and serialisation — every layer where a correct rule can still
- * produce a wrong response.
- */
 class ProjectControllerIT extends AbstractWebIntegrationTest {
 
 	@Autowired
@@ -134,7 +125,7 @@ class ProjectControllerIT extends AbstractWebIntegrationTest {
 			project.setTechStack(List.of("Java 21", "Spring Boot"));
 		});
 
-		// PRD 6.9, the test that exists because the failure it catches is silent.
+		// The test that exists because the failure it catches is silent.
 		mockMvc.perform(patch("/api/projects/" + seeded.getId()).with(as(owner))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{}"))
@@ -340,7 +331,7 @@ class ProjectControllerIT extends AbstractWebIntegrationTest {
 		});
 		User stranger = users.save(TestFixtures.user("stranger@example.com"));
 
-		// PRD 6.1: 404, not 403. A 403 would confirm the id names a real project.
+		// NFR-2.7: 404, not 403. A 403 would confirm the id names a real project.
 		mockMvc.perform(get("/api/projects/" + mine.getId()).with(as(stranger)))
 				.andExpect(status().isNotFound());
 		mockMvc.perform(patch("/api/projects/" + mine.getId()).with(as(stranger))

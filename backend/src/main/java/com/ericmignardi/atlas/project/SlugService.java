@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 
-/** FR-2.3 – FR-2.5. The URL half of a project name. */
+/** FR-2.3 – FR-2.5. */
 @Service
 @RequiredArgsConstructor
 public class SlugService {
@@ -23,11 +23,9 @@ public class SlugService {
 
 	/**
 	 * NFD decomposition splits an accented character into the letter and a
-	 * combining mark, so stripping the marks leaves the letter behind:
-	 * {@code Café} becomes {@code cafe} rather than {@code caf}. Doing it the
-	 * obvious way — deleting everything outside a-z0-9 — silently drops the
-	 * accented letter entirely, and the bug only shows up on somebody else's
-	 * name.
+	 * combining mark, so stripping the marks leaves the letter behind: Café
+	 * becomes cafe rather than caf. Deleting everything outside a-z0-9 instead
+	 * drops the accented letter entirely.
 	 */
 	public String slugify(String input) {
 		if (input == null) {
@@ -42,11 +40,9 @@ public class SlugService {
 	}
 
 	/**
-	 * FR-2.4. One query, not a loop of existence checks: every slug that could
-	 * possibly collide shares the base as a prefix, so a single prefix scan
-	 * brings back the whole candidate set and the suffix search happens in
-	 * memory. The loop-of-queries version costs one round trip per attempt and
-	 * still races.
+	 * FR-2.4. One prefix scan rather than a loop of existence checks: every slug
+	 * that could collide shares the base as a prefix, so the suffix search
+	 * happens in memory.
 	 *
 	 * @param excludeId the project being renamed, so it does not collide with
 	 *                  itself; null on create

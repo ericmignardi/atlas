@@ -24,7 +24,6 @@ import com.ericmignardi.atlas.user.User;
 import com.ericmignardi.atlas.user.UserRepository;
 import com.jayway.jsonpath.JsonPath;
 
-/** PRD 6.6 over real HTTP. */
 class TagControllerIT extends AbstractWebIntegrationTest {
 
 	@Autowired
