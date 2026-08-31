@@ -1,0 +1,22 @@
+# Java
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Environment — never commit these
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,32 @@
+# Atlas — local development.
+#
+# Only the database runs in Docker. The backend runs from your IDE or
+# `./mvnw spring-boot:run`, the frontend from `npm run dev`, so both keep
+# hot reload and a debugger attached.
+#
+#   docker compose up -d
+#   docker compose ps        # expect "healthy"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: atlas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-atlas}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-atlas}
+      POSTGRES_DB: ${POSTGRES_DB:-atlas}
+    ports:
+      # 5433 avoids clashing with any Postgres already installed locally.
+      # This is the port DATABASE_URL in .env points at.
+      - "5433:5432"
+    volumes:
+      - atlas-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-atlas} -d ${POSTGRES_DB:-atlas}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  atlas-data:

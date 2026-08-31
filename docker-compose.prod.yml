@@ -1,0 +1,89 @@
+# Atlas — full stack, production-shaped.
+#
+# All three services run in Docker: Postgres, the Spring Boot API, and the
+# built frontend served by nginx. Use it to reproduce the deployed topology
+# on one host, or as a self-hosted alternative to Container Apps + Static
+# Web Apps.
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Variables are read from the root .env unless you pass --env-file. Do not
+# reuse the dev .env here: its DATABASE_URL points at localhost:5433, while
+# inside this network the database is reachable at db:5432 (set below, so the
+# dev value is deliberately ignored).
+#
+# Requires backend/Dockerfile and frontend/Dockerfile to exist.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: atlas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:?set DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD to a real secret}
+      POSTGRES_DB: ${POSTGRES_DB:-atlas}
+    volumes:
+      - atlas-data:/var/lib/postgresql/data
+    # No published ports: only the backend needs the database, and it reaches
+    # it over the internal network. Nothing on the host can connect to it.
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${POSTGRES_DB:-atlas}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    image: atlas-backend:${TAG:-latest}
+    container_name: atlas-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Service name, not localhost — Compose DNS resolves "db" on this network.
+      DATABASE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-atlas}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      PORT: 8080
+      # No default: a missing secret must fail startup (NFR-2.2).
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET, e.g. openssl rand -base64 48}
+      # The exact origin the browser loads the frontend from. No wildcard (NFR-2.4).
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost}
+    ports:
+      # Published because the browser calls the API directly at this origin —
+      # which is what puts the CORS configuration under real load.
+      - "${BACKEND_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Vite inlines env vars at BUILD time, not run time. Changing this
+        # requires a rebuild (--build), not just a restart.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    image: atlas-frontend:${TAG:-latest}
+    container_name: atlas-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  atlas-data:
