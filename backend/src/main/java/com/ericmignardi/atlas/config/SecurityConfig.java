@@ -35,8 +35,13 @@ public class SecurityConfig {
 				.build();
 	}
 
+	/**
+	 * Strength 12, not the default 10 (PRD 5.2). Each increment doubles the work
+	 * factor; 12 costs roughly a quarter of a second per hash, which is
+	 * unnoticeable on a login and expensive on an offline dictionary attack.
+	 */
 	@Bean
 	PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
+		return new BCryptPasswordEncoder(12);
 	}
 }

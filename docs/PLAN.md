@@ -46,7 +46,7 @@ Fill in as you go. This is the honest record.
 | Day | Date | Planned | Actual | Notes |
 |---|---|---|---|---|
 | 1 | Mon Aug 31 | Foundations + walking skeleton | Done | Boot 4.1.1, not the 3.5.x in §1.3 — Initializr no longer offers 3.5. Starter names, Testcontainers 2.x, and springdoc 3.1.0 follow from that. All Azure work moved to [§10.1](#101-azure-account-and-first-deployment) pending the free account; §1.7 now ends at container images, both of which build and run. See [R-12](#risk-register). |
-| 2 | Tue Sep 1 | Persistence | | |
+| 2 | Tue Sep 1 | Persistence | Done | Seven migrations, seven entities, six repositories, 38 green tests. Two deliberate departures from §2.5 and §2.2, both forced by the Boot 4.1.1 / Testcontainers 2.x stack from Day 1: the container is a shared static `@ServiceConnection` bean rather than `@Container` + `@DynamicPropertySource`, and `ProjectTag.equals` compares the two association ids rather than the `@EmbeddedId` — `@MapsId` leaves the key null until flush, so the documented id-only rule collapses a whole `Set` of new join rows into one. Added `flyway-maven-plugin` so the `flyway:info` check is real. BCrypt raised to strength 12 per [PRD §5.2](./PRD.md#52-users). |
 | 3 | Wed Sep 2 | Projects + Tags API | | |
 | 4 | Thu Sep 3 | Environments + Tasks API | | |
 | 5 | Fri Sep 4 | Spring Security | | |
@@ -726,6 +726,13 @@ private List<String> techStack = new ArrayList<>();
 **`ProjectTag`** uses an `@Embeddable` composite key (`@EmbeddedId`) with `@MapsId` on both
 `@ManyToOne` fields.
 
+> **The one entity where "equals on the id only" is wrong.** `@MapsId` does not populate the
+> embedded key until flush, so every freshly constructed `ProjectTag` holds `(null, null)` — and
+> an id-only `equals` makes them all equal to each other. Add three tags to a project and the
+> `Set` keeps one, silently, with no error anywhere. `ProjectTag.equals` therefore compares
+> `project.getId()` and `tag.getId()`, which are assigned before the join row is built and never
+> change. The rule above still holds everywhere else.
+
 ### 2.3 Repositories
 
 One `JpaRepository` per aggregate root. Derived query methods where they read clearly, `@Query`
@@ -804,14 +811,14 @@ running against real Postgres.
 
 ### Done when
 
-- [ ] `./mvnw flyway:info` lists all seven migrations as applied
-- [ ] The application starts with `ddl-auto: validate` and no schema mismatch
-- [ ] `\d+ environments` in psql shows the unique constraint on `paired_with_id`
-- [ ] Inserting two environments with the same `paired_with_id` fails at the database level
-- [ ] Deleting a project deletes its environments and nulls its tasks' `project_id`
-- [ ] `techStack` round-trips a list of strings through `text[]`
-- [ ] Seed data loads on the `dev` profile and re-running the app does not duplicate it
-- [ ] `./mvnw test` is green and Testcontainers starts Postgres
+- [x] `./mvnw flyway:info` lists all seven migrations as applied
+- [x] The application starts with `ddl-auto: validate` and no schema mismatch
+- [x] `\d+ environments` in psql shows the unique constraint on `paired_with_id`
+- [x] Inserting two environments with the same `paired_with_id` fails at the database level
+- [x] Deleting a project deletes its environments and nulls its tasks' `project_id`
+- [x] `techStack` round-trips a list of strings through `text[]`
+- [x] Seed data loads on the `dev` profile and re-running the app does not duplicate it
+- [x] `./mvnw test` is green and Testcontainers starts Postgres
 
 ### Learning notes
 

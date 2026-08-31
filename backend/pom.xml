@@ -19,6 +19,18 @@
 		<jjwt.version>0.13.0</jjwt.version>
 		<springdoc.version>3.1.0</springdoc.version>
 		<jackson-databind-nullable.version>0.2.11</jackson-databind-nullable.version>
+
+		<!--
+		  Read by the flyway-maven-plugin, so `./mvnw flyway:info` works with no
+		  arguments against the Compose database. These are the same throwaway
+		  local credentials docker-compose.yml defaults to — never a real one —
+		  and any of them can be overridden per invocation, e.g.
+		  `./mvnw flyway:info -Dflyway.url=...`.
+		-->
+		<flyway.url>jdbc:postgresql://localhost:5433/atlas</flyway.url>
+		<flyway.user>atlas</flyway.user>
+		<flyway.password>atlas</flyway.password>
+		<flyway.locations>filesystem:src/main/resources/db/migration</flyway.locations>
 	</properties>
 
 	<dependencies>
@@ -181,6 +193,29 @@
 						<arg>-parameters</arg>
 					</compilerArgs>
 				</configuration>
+			</plugin>
+			<!--
+			  Flyway from the command line: `./mvnw flyway:info` to see what is
+			  applied, `flyway:validate` to check the checksums of what already
+			  ran. Never bound to a lifecycle phase — the application migrates
+			  itself on startup, and a second migrator running during `test`
+			  would fight Testcontainers for the schema.
+			-->
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<dependencies>
+					<dependency>
+						<groupId>org.flywaydb</groupId>
+						<artifactId>flyway-database-postgresql</artifactId>
+						<version>${flyway.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>org.postgresql</groupId>
+						<artifactId>postgresql</artifactId>
+						<version>${postgresql.version}</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 			<!-- Coverage (NFR-3.2). -->
 			<plugin>
