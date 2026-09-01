@@ -22,8 +22,12 @@ import com.ericmignardi.atlas.user.UserRepository;
  * {@code dev} profile, which is a different context-cache key anyway. Spring Boot
  * does not invoke {@code CommandLineRunner} beans in a test context, so the run
  * is explicit here.
+ *
+ * <p>The secret is supplied inline because the {@code dev} profile does not load
+ * {@code application-test.yml}, and {@code atlas.jwt.secret} has no default by
+ * design (NFR-2.2) — without one here the context would not start.
  */
-@SpringBootTest
+@SpringBootTest(properties = "atlas.jwt.secret=dev-profile-test-signing-key-not-used-anywhere-else")
 @Import(TestcontainersConfiguration.class)
 @ActiveProfiles("dev")
 class DevDataSeederTest {

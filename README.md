@@ -329,8 +329,9 @@ Test coverage concentrates where the logic actually lives:
 
 ## API
 
-Base path `/api`. Every endpoint except `/api/auth/**` and the operational paths requires
-`Authorization: Bearer <accessToken>`.
+Base path `/api`. Every endpoint requires `Authorization: Bearer <accessToken>` except
+`/auth/register`, `/auth/login`, `/auth/refresh`, and the operational paths. `/auth/logout` and
+`/auth/me` are authenticated like everything else — you have to be signed in to sign out.
 
 | Method | Endpoint | Purpose |
 |---|---|---|

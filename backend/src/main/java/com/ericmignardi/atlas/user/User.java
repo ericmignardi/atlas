@@ -1,5 +1,7 @@
 package com.ericmignardi.atlas.user;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.Hibernate;
@@ -49,6 +51,23 @@ public class User extends Auditable {
 
 	@Column(name = "enabled", nullable = false)
 	private boolean enabled = true;
+
+	/**
+	 * The {@code roles} column split into authority names. One column holding
+	 * {@code "ROLE_USER,ROLE_ADMIN"} rather than a join table is the right trade
+	 * for FR-1.10: two roles, no per-role metadata, and every read of a user
+	 * wants all of them anyway.
+	 *
+	 * <p>Not named {@code getRoleNames} on purpose — a {@code get} prefix would
+	 * make this look like a persistent property to anything doing bean-property
+	 * introspection.
+	 */
+	public List<String> roleNames() {
+		return Arrays.stream(roles.split(","))
+				.map(String::trim)
+				.filter(role -> !role.isEmpty())
+				.toList();
+	}
 
 	/*
 	 * Identity is the surrogate key and nothing else. A mutable field would

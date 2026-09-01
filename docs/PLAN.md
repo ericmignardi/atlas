@@ -49,7 +49,7 @@ Fill in as you go. This is the honest record.
 | 2 | Tue Sep 1 | Persistence | Done | Seven migrations, seven entities, six repositories, 38 green tests. Two deliberate departures from §2.5 and §2.2, both forced by the Boot 4.1.1 / Testcontainers 2.x stack from Day 1: the container is a shared static `@ServiceConnection` bean rather than `@Container` + `@DynamicPropertySource`, and `ProjectTag.equals` compares the two association ids rather than the `@EmbeddedId` — `@MapsId` leaves the key null until flush, so the documented id-only rule collapses a whole `Set` of new join rows into one. Added `flyway-maven-plugin` so the `flyway:info` check is real. BCrypt raised to strength 12 per [PRD §5.2](./PRD.md#52-users). |
 | 3 | Wed Sep 2 | Projects + Tags API | | |
 | 4 | Thu Sep 3 | Environments + Tasks API | Done | `EnvironmentPairingService`, `EnvironmentService`, `TaskService`, both controllers, and 33 new tests — 142 green. Three departures from §4.1 – §4.5. Pairing writes **both** `paired_with_id` columns and flushes between release and assign: §4.1 assumed the flush ordering was safe, and it is not — Hibernate may emit the assignment before the release inside one flush and hit the UNIQUE constraint. `releasePartner` also clears the inverse `pairedBy` on every object it touches; leaving it stale makes Hibernate refuse the flush when the released row is then deleted. And `needsAttention` partitions on `!due.isBefore(endOfToday)` rather than §4.5's `isAfter(endOfDay)`, so the three buckets are exhaustive at the boundary instead of dropping a task due exactly at midnight. `DevDataSeeder.pair` updated to write both sides too, so the seed matches what the service produces (the assertion in `DevDataSeederTest` moves from 5 rows to 10). |
-| 5 | Fri Sep 4 | Spring Security | | |
+| 5 | Fri Sep 4 | Spring Security | Done | `JwtService`, `JwtAuthenticationFilter`, `CustomUserDetailsService`, `RefreshTokenService`, `SecurityErrorHandler`, `LoginRateLimiter`, and the five `/api/auth` endpoints — 45 new tests, 187 green. The Day 3 stub in `CurrentUserResolver` is gone; §5.6 needed no service changes because Days 3 and 4 were already written against a `UserPrincipal`. Four departures from §5.2 – §5.5. The key is a `SecretKeySpec("HmacSHA256")` signed with `Jwts.SIG.HS256` rather than `Keys.hmacShaKeyFor` + bare `signWith`, which infers the algorithm from key length and would sign HS512 with the 64-byte secret in `.env` — FR-1.4 says HS256. The `roles` claim is a JSON array, not the comma-separated column value, matching `UserResponse.roles: string[]`. CORS moved out of `WebConfig` into `SecurityConfig` so there is one source of truth, and `@ConfigurationProperties` (`AtlasProperties`) replaced the scattered `@Value`s the §5.2 snippet assumes. Two things §5.3 does not mention and the tests found: rotation needs `noRollbackFor = ApiException.class`, or the reuse-detection revoke is rolled back by the throw that follows it and the attacker keeps the session; and the refresh lookup needs a `JOIN FETCH` on the user, because the lazy proxy dies once rotation's transaction closes. Email is normalised in the DTO canonical constructors rather than in the service — `@Email` rejects the trailing space a form sends, so normalising after validation is too late. An unset `JWT_SECRET` binds as the literal `${JWT_SECRET}`, 13 characters, and fails the 256-bit check: the right outcome, by a different route than §5.2 assumed. |
 | 6 | Mon Sep 7 | Frontend foundation | | |
 | 7 | Tue Sep 8 | Projects + Tags UI | | |
 | 8 | Wed Sep 9 | Environments + Tasks UI | | |
@@ -1384,21 +1384,21 @@ token and scoped to its owner.
 
 ### Done when
 
-- [ ] `POST /api/auth/register` returns 201 with both tokens
-- [ ] A duplicate email returns 400 with `fields.email`
-- [ ] A 6-character password returns 400 with `fields.password`
-- [ ] `POST /api/auth/login` returns 200 with both tokens
-- [ ] A wrong password returns 401, message identical to that for an unknown email
-- [ ] `GET /api/projects` with no header returns 401 **as JSON**, not HTML
-- [ ] A tampered token returns 401
-- [ ] An expired token returns 401
-- [ ] `POST /api/auth/refresh` returns a new access token and rotates the refresh token
-- [ ] The old refresh token is rejected after rotation
-- [ ] After logout, the refresh token returns 401
-- [ ] **User B requesting user A's project returns 404**
-- [ ] The database stores a BCrypt hash, and no response or log contains a plaintext password
-- [ ] Starting with `JWT_SECRET` unset fails at startup with a clear message
-- [ ] The eleventh login attempt in a minute returns 429
+- [x] `POST /api/auth/register` returns 201 with both tokens
+- [x] A duplicate email returns 400 with `fields.email`
+- [x] A 6-character password returns 400 with `fields.password`
+- [x] `POST /api/auth/login` returns 200 with both tokens
+- [x] A wrong password returns 401, message identical to that for an unknown email
+- [x] `GET /api/projects` with no header returns 401 **as JSON**, not HTML
+- [x] A tampered token returns 401
+- [x] An expired token returns 401
+- [x] `POST /api/auth/refresh` returns a new access token and rotates the refresh token
+- [x] The old refresh token is rejected after rotation
+- [x] After logout, the refresh token returns 401
+- [x] **User B requesting user A's project returns 404**
+- [x] The database stores a BCrypt hash, and no response or log contains a plaintext password
+- [x] Starting with `JWT_SECRET` unset fails at startup with a clear message
+- [x] The eleventh login attempt in a minute returns 429
 
 ### Learning notes
 

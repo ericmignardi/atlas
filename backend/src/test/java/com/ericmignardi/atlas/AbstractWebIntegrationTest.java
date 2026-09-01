@@ -2,12 +2,9 @@ package com.ericmignardi.atlas;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
@@ -17,11 +14,12 @@ import com.ericmignardi.atlas.user.User;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * {@link #as(User)} is why these tests can be honest about ownership. The Day 3
- * stub in {@code CurrentUserResolver} resolves an unauthenticated request to the
- * single account in the database, which is unusable for a test that needs two;
- * putting a real {@code UserPrincipal} in the security context takes the same
- * path the Day 5 JWT filter will.
+ * {@link #as(User)} is why these tests can be honest about ownership: it puts a
+ * real {@link UserPrincipal} in the security context, which is the same thing
+ * {@link com.ericmignardi.atlas.security.JwtAuthenticationFilter} does after
+ * verifying a token. Tests that care about the token itself — a tampered one, an
+ * expired one, none at all — send a real {@code Authorization} header instead;
+ * see {@code AuthControllerIT}.
  */
 @AutoConfigureMockMvc
 public abstract class AbstractWebIntegrationTest extends AbstractIntegrationTest {
@@ -34,8 +32,8 @@ public abstract class AbstractWebIntegrationTest extends AbstractIntegrationTest
 
 	protected static RequestPostProcessor as(User user) {
 		UserPrincipal principal = UserPrincipal.of(user);
-		return authentication(new UsernamePasswordAuthenticationToken(principal, null,
-				List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+		return authentication(
+				new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
 	}
 
 	protected String json(Object value) {

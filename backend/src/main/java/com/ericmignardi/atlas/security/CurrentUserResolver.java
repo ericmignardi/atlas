@@ -1,28 +1,26 @@
 package com.ericmignardi.atlas.security;
 
-import java.util.List;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.ericmignardi.atlas.common.error.ApiException;
-import com.ericmignardi.atlas.user.User;
-import com.ericmignardi.atlas.user.UserRepository;
-
-import lombok.RequiredArgsConstructor;
 
 /**
- * Day 5 adds the JWT filter that puts a {@link UserPrincipal} in the security
- * context, and this class does not change: deleting {@code seedAccount()} is the
- * whole of the migration.
+ * The single read of the security context. Everything downstream takes a
+ * {@link UserPrincipal} as a parameter, which keeps the services testable
+ * without a thread-local and makes NFR-2.8 structural: there is no code path
+ * that could take a user id from the request body instead.
+ *
+ * <p>The Day 3 stub that resolved an unauthenticated request to "the only
+ * account in the database" is gone. {@link JwtAuthenticationFilter} now puts the
+ * real principal in the context, and the filter chain rejects the request before
+ * it ever reaches a controller — so the throw below is a guard against a
+ * misconfigured {@code SecurityConfig}, not an expected path.
  */
 @Component
-@RequiredArgsConstructor
 public class CurrentUserResolver {
-
-	private final UserRepository users;
 
 	public UserPrincipal require() {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -30,20 +28,6 @@ public class CurrentUserResolver {
 				&& authentication.getPrincipal() instanceof UserPrincipal principal) {
 			return principal;
 		}
-		return seedAccount();
-	}
-
-	/**
-	 * Day 3 only. Ambiguity is a 401 rather than a guess: picking "the first
-	 * user" out of several would hand one account another account's data, which
-	 * is the failure mode FR-1.9 exists to prevent.
-	 */
-	private UserPrincipal seedAccount() {
-		List<User> all = users.findAll();
-		if (all.size() != 1) {
-			throw new ApiException(HttpStatus.UNAUTHORIZED,
-					all.isEmpty() ? "No account exists yet" : "Sign in to continue");
-		}
-		return UserPrincipal.of(all.get(0));
+		throw new ApiException(HttpStatus.UNAUTHORIZED, "Authentication is required");
 	}
 }
