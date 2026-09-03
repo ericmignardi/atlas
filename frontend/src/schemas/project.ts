@@ -62,3 +62,30 @@ export const projectUpdateSchema = projectCreateSchema.partial();
 
 export type ProjectCreate = z.infer<typeof projectCreateSchema>;
 export type ProjectUpdate = z.infer<typeof projectUpdateSchema>;
+
+/**
+ * The body of a PATCH, written as a type rather than derived from the schema.
+ *
+ * `projectUpdateSchema.partial()` gives "key absent means leave it alone", which
+ * is two of the server's three intentions. The third — key present and null,
+ * meaning *clear this column* — cannot come out of a `.partial()` of a schema
+ * whose fields are non-nullable, and it is exactly what "the user emptied the
+ * client field" has to send. A `.nullable()` on every field would then let a
+ * null through on `name`, which the server rejects with a 400.
+ *
+ * So the form validates its inputs against `projectCreateSchema`, which is where
+ * the real rules live, and maps the result onto this: nullable where the column
+ * is, plain where it is not.
+ */
+export interface ProjectPatch {
+  name?: string;
+  client?: string | null;
+  description?: string | null;
+  status?: ProjectCreate["status"];
+  repoUrl?: string | null;
+  liveUrl?: string | null;
+  engagement?: string | null;
+  techStack?: string[];
+  startedAt?: string | null;
+  tagIds?: string[];
+}

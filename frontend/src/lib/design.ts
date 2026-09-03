@@ -49,15 +49,22 @@ export function tintForColor(hex: string | null | undefined): Tint {
   return TINT_BY_INK[hex?.toLowerCase() ?? ""] ?? "neutral";
 }
 
-/** The palette cycle, in the server's order, for previewing a tag before it exists. */
-export const TAG_PALETTE: readonly Tint[] = [
-  "blue",
-  "green",
-  "amber",
-  "violet",
-  "teal",
-  "red",
-  "neutral",
+/**
+ * The palette cycle, in the server's order (`TagPalette.COLOURS`), for
+ * previewing a tag before it exists and for the swatch row in the tag form.
+ *
+ * The hexes are the *ink* of each recipe, which is what the `color` column
+ * stores — so a swatch the user picks can be sent straight to the API, and
+ * `tintForColor` maps it back to the full triple on the way in.
+ */
+export const TAG_PALETTE: readonly { tint: Tint; hex: string }[] = [
+  { tint: "blue", hex: "#2251B4" },
+  { tint: "green", hex: "#16643B" },
+  { tint: "amber", hex: "#8A5A08" },
+  { tint: "violet", hex: "#5B2BB0" },
+  { tint: "teal", hex: "#0F6157" },
+  { tint: "red", hex: "#9B2C22" },
+  { tint: "neutral", hex: "#454D5F" },
 ];
 
 interface EnumRecipe {

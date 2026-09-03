@@ -25,6 +25,8 @@ which is why the backend configures CORS explicitly rather than relying on the p
 | `src/stores/` | Zustand: `authStore`, `prefsStore`, `uiStore`. |
 | `src/components/ui/` | The primitives. Built before any feature page, because every page needs them. |
 | `src/components/layout/` | Sidebar, app shell, auth gate, width notice. |
+| `src/components/projects/`, `src/components/tags/` | Feature components — the card, the toolbar, the two form modals, `TagInput`, `StackInput`. |
+| `src/hooks/useApi.ts` | The three states of FR-8.1, plus the stale-response guard. |
 | `src/routes/` | The route table and the two guards. |
 | `src/pages/` | One module per route, each with a default export (`React.lazy` requires one). |
 
@@ -46,8 +48,24 @@ five independent refresh attempts means one success and four failures against a 
 and the user is signed out mid-session. `apiClient.ts` shares a single in-flight promise; the
 tests in `apiClient.test.ts` fire five parallel requests and assert exactly one refresh.
 
+**Filtering happens in the browser.** `GET /api/projects` is fetched once and narrowed by
+`lib/projectFilters.ts` — pure functions over the fetched array. At the scale Atlas is built for
+that is instant, it makes every filter change free, and it removes the class of bug where a
+filter change races the response to the previous one. The endpoints still support the same
+filters server-side, which is where this moves if the data ever grows.
+
 ## Testing
 
-Vitest with jsdom and Testing Library. The suite covers the two things that are genuinely hard to
-verify by hand: the refresh interceptor's concurrency guard, and the rule that a global shortcut
-does not fire while a text input has focus.
+Vitest with jsdom and Testing Library. The suite covers the things that are genuinely hard to
+verify by hand:
+
+| File | What it protects |
+|---|---|
+| `lib/apiClient.test.ts` | The refresh interceptor's concurrency guard — five parallel 401s, exactly one refresh. |
+| `hooks/useKeyboardShortcuts.test.tsx` | A global shortcut does not fire while a text input has focus. |
+| `hooks/useApi.test.tsx` | A slow response that lands after a newer one is discarded, not rendered. |
+| `components/ui/Modal.test.tsx` | The focus trap does not steal the caret from a field on every keystroke. |
+| `lib/projectFilters.test.ts` | FR-2.7's archived exception and FR-2.8's pinned-first ordering. |
+| `components/projects/TagInput.test.tsx` | Autocomplete, the "Create *name*" row, and Backspace-removes-a-chip. |
+| `pages/ProjectsPage.test.tsx` | The 409 on a fifth pin rolls the optimistic toggle back. |
+| `pages/ProjectDetailPage.test.tsx` | `?tab=` drives the open tab, both directions. |

@@ -255,5 +255,13 @@ export const api = {
 
   put: <T>(url: string, body?: unknown) => apiClient.put<T>(url, body).then((r) => r.data),
 
-  delete: (url: string) => apiClient.delete<void>(url).then(() => undefined),
+  /**
+   * Generic in its result because two endpoints break the usual shape:
+   * `DELETE /projects/{id}/pin` and `DELETE /environments/{id}/pair` return the
+   * updated record rather than 204, which is the right contract — unpinning
+   * tells you what the project now looks like. The `void` default keeps the
+   * ordinary call site honest: `api.delete(url)` still types as nothing, and a
+   * 204's empty body is never read.
+   */
+  delete: <T = void>(url: string) => apiClient.delete<T>(url).then((r) => r.data),
 };

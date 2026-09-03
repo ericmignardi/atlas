@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 /**
  * Tab and Shift+Tab are the only two keys that can move focus out of a dialog,
@@ -22,6 +22,22 @@ export function useFocusTrap(
   active: boolean,
   onEscape?: () => void,
 ) {
+  /**
+   * Held in a ref, and the effect below deliberately does **not** depend on it.
+   *
+   * Callers pass an inline arrow, so `onEscape` has a new identity on every
+   * render. With it in the dependency array the effect tears down and re-runs
+   * each time — and re-running it calls `first.focus()`, which moves focus to
+   * the dialog's first control. Inside a dialog that is only a confirmation
+   * that is invisible; inside one containing a *form*, every keystroke changes
+   * state, re-renders, and yanks the caret out of the field the user is typing
+   * in after the first character.
+   */
+  const latestEscape = useRef(onEscape);
+  useEffect(() => {
+    latestEscape.current = onEscape;
+  });
+
   useEffect(() => {
     if (!active) return;
 
@@ -35,15 +51,24 @@ export function useFocusTrap(
 
     const focusable = () => Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE));
 
-    // Focus the first control rather than the dialog itself, so a form is ready
-    // to type into. Falls back to the container when there is nothing to focus.
-    const first = focusable()[0];
-    (first ?? node).focus();
+    /**
+     * Focus something inside, rather than the dialog itself, so a form is ready
+     * to type into.
+     *
+     * "The first focusable element" is not good enough on its own: in DOM order
+     * that is the header's close button, so opening a form puts the caret on
+     * Dismiss. A dialog that has a field worth starting in marks it with
+     * `data-autofocus` and gets it. `autoFocus` is not used for this — React
+     * implements it by calling `.focus()` itself rather than by emitting the
+     * attribute, so there would be nothing here to query.
+     */
+    const preferred = node.querySelector<HTMLElement>("[data-autofocus]");
+    (preferred ?? focusable()[0] ?? node).focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.stopPropagation();
-        onEscape?.();
+        latestEscape.current?.();
         return;
       }
 
@@ -73,5 +98,5 @@ export function useFocusTrap(
       node.removeEventListener("keydown", onKeyDown);
       previouslyFocused?.focus?.();
     };
-  }, [container, active, onEscape]);
+  }, [container, active]);
 }
