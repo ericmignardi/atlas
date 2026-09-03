@@ -22,4 +22,13 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // The route table declares lazy route components but exports only the
+    // router itself, which react-refresh reads as a component module with a
+    // non-component export. Fast Refresh does not apply to a route table —
+    // editing it remounts the tree either way — so the rule has nothing to
+    // protect here.
+    files: ['src/routes/router.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
 ])

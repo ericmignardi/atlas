@@ -1,59 +1,83 @@
 /*
  * Atlas design tokens — PRD §9.
  *
- * Tailwind v4 is CSS-first: there is no tailwind.config.js. Everything declared
- * in @theme becomes both a CSS custom property and a utility class, so
- * --color-accent gives you bg-accent, text-accent, border-accent for free.
+ * Tailwind v4 is CSS-first: there is no tailwind.config.js, so this file *is*
+ * the configuration. Everything declared in @theme becomes both a CSS custom
+ * property and a utility class, so --color-accent gives you bg-accent,
+ * text-accent, and border-accent for free.
  *
- * Day 1 lays down colour and type. Motion, shadows, and the enum/tag recipes
- * land on Day 6.
+ * Every namespace Atlas owns is reset to `initial` before it is redefined. That
+ * deletes Tailwind's stock palette, type scale, breakpoints, and shadows, so
+ * `bg-blue-500` or `text-lg` at the wrong size emits no CSS at all rather than
+ * quietly shipping a value that is not in the system. It is the cheapest
+ * possible enforcement of a design system.
  */
 @import "tailwindcss";
 
 @theme {
+  /* ── Breakpoints ───────────────────────────────────────────────────────
+     Three only. Nothing below 768 — Atlas is a desktop tool and says so
+     (PRD §9.1); WidthNotice covers the narrower case. */
+  --breakpoint-*: initial;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+
   /* ── Typography ────────────────────────────────────────────────────────
      Public Sans for interface text, JetBrains Mono for branches, URLs, ids,
      and tech-stack chips. Base is 15/23 — deliberately not 16, which reads
      as a marketing page. */
+  --font-*: initial;
   --font-sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Cascadia Code", monospace;
 
-  --text-eyebrow: 0.6875rem;      /* 11 */
-  --text-eyebrow--line-height: 0.875rem;   /* 14 */
+  --text-*: initial;
+
+  --text-eyebrow: 0.6875rem; /* 11 */
+  --text-eyebrow--line-height: 0.875rem; /* 14 */
   --text-eyebrow--letter-spacing: 0.08em;
   --text-eyebrow--font-weight: 600;
 
-  --text-xs: 0.75rem;             /* 12 */
-  --text-xs--line-height: 1rem;   /* 16 */
+  --text-xs: 0.75rem; /* 12 */
+  --text-xs--line-height: 1rem; /* 16 */
   --text-xs--font-weight: 500;
 
-  --text-sm: 0.8125rem;           /* 13 */
-  --text-sm--line-height: 1.25rem;/* 20 */
+  --text-sm: 0.8125rem; /* 13 */
+  --text-sm--line-height: 1.25rem; /* 20 */
 
-  --text-base: 0.9375rem;         /* 15 */
+  --text-base: 0.9375rem; /* 15 */
   --text-base--line-height: 1.4375rem; /* 23 */
 
-  --text-lg: 1.0625rem;           /* 17 */
+  --text-lg: 1.0625rem; /* 17 */
   --text-lg--line-height: 1.5rem; /* 24 */
   --text-lg--font-weight: 600;
 
-  --text-xl: 1.3125rem;           /* 21 */
-  --text-xl--line-height: 1.75rem;/* 28 */
+  --text-xl: 1.3125rem; /* 21 */
+  --text-xl--line-height: 1.75rem; /* 28 */
   --text-xl--font-weight: 600;
 
-  --text-2xl: 1.75rem;            /* 28 */
+  --text-2xl: 1.75rem; /* 28 */
   --text-2xl--line-height: 2.125rem; /* 34 */
   --text-2xl--font-weight: 600;
 
-  --text-mono-sm: 0.75rem;        /* 12 */
+  --text-mono-sm: 0.75rem; /* 12 */
   --text-mono-sm--line-height: 1.125rem; /* 18 */
 
-  --text-mono-base: 0.8125rem;    /* 13 */
+  --text-mono-base: 0.8125rem; /* 13 */
   --text-mono-base--line-height: 1.3125rem; /* 21 */
 
   /* ── Colour ────────────────────────────────────────────────────────────
      A cool blue-grey neutral carries ~90% of the interface. One accent hue,
      rationed to primary actions, active navigation, and "now" states. */
+  --color-*: initial;
+
+  /* Structural, not palette: these are how CSS says "no colour" and "the
+     inherited one". Deleting them would break border-transparent and
+     fill-current without buying any design-system enforcement. */
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-inherit: inherit;
+
   --color-canvas: #edeff4;
   --color-surface: #ffffff;
   --color-surface-sunken: #f8f9fb;
@@ -67,30 +91,168 @@
   --color-accent: #2a61d6;
   --color-accent-hover: #2251b4;
 
-  --color-green-600: #1b7a48;   /* shipped, completed */
-  --color-amber-600: #b4750b;   /* paused, due soon */
-  --color-red-600: #c7382e;     /* urgent, overdue, destructive */
-  --color-violet-600: #6d34c4;  /* blocked — a dependency, not a severity */
-  --color-teal-600: #12796c;    /* database platform */
+  /* Text and icons sitting on a filled accent or red surface. Named for the
+     role rather than the colour, so "white on accent" stays one decision. */
+  --color-on-accent: #ffffff;
+
+  --color-green-600: #1b7a48; /* shipped, completed */
+  --color-amber-600: #b4750b; /* paused, due soon */
+  --color-red-600: #c7382e; /* urgent, overdue, destructive */
+  --color-red-700: #a52b22; /* destructive hover */
+  --color-violet-600: #6d34c4; /* blocked — a dependency, not a severity */
+  --color-teal-600: #12796c; /* database platform */
+
+  /* ── Tints ─────────────────────────────────────────────────────────────
+     Seven recipes (PRD §9.5), each a background / ink / border triple. They
+     dress both tag chips and status badges: the two are the same three
+     colours in different shapes — fully rounded against radius-md — and
+     duplicating the hexes per component would guarantee they drift apart.
+
+     The tags table stores the *ink* hex of a recipe; design.ts maps it back
+     to the whole triple, so a palette tweak is a stylesheet change and never
+     a data migration. */
+  --color-tint-neutral: #f1f3f7;
+  --color-tint-neutral-ink: #454d5f;
+  --color-tint-neutral-line: #e5e8ef;
+
+  --color-tint-blue: #eef4ff;
+  --color-tint-blue-ink: #2251b4;
+  --color-tint-blue-line: #c3d7fd;
+
+  --color-tint-green: #ebf7ef;
+  --color-tint-green-ink: #16643b;
+  --color-tint-green-line: #bfe3cc;
+
+  --color-tint-amber: #fef6e7;
+  --color-tint-amber-ink: #8a5a08;
+  --color-tint-amber-line: #f5dfb0;
+
+  --color-tint-red: #fdf1f0;
+  --color-tint-red-ink: #9b2c22;
+  --color-tint-red-line: #fadcd9;
+
+  --color-tint-violet: #f6f1fe;
+  --color-tint-violet-ink: #5b2bb0;
+  --color-tint-violet-line: #dfcffa;
+
+  --color-tint-teal: #e8f7f4;
+  --color-tint-teal-ink: #0f6157;
+  --color-tint-teal-line: #bee7df;
 
   /* ── Radii ─────────────────────────────────────────────────────────────
      Badges are md, chips are fully rounded — shape alone distinguishes them. */
+  --radius-*: initial;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 10px;
   --radius-xl: 14px;
+
+  /* ── Elevation ─────────────────────────────────────────────────────────
+     Three levels only, and resting cards use none of them: a 1px border and
+     no shadow (PRD §9.3). A shadow means "this floats above the page". */
+  --shadow-*: initial;
+  --shadow-raised: 0 1px 2px rgb(28 34 43 / 0.06), 0 1px 3px rgb(28 34 43 / 0.08);
+  --shadow-overlay: 0 4px 12px rgb(28 34 43 / 0.1), 0 1px 3px rgb(28 34 43 / 0.06);
+  --shadow-modal: 0 16px 48px rgb(28 34 43 / 0.18), 0 2px 8px rgb(28 34 43 / 0.08);
+
+  /* ── Motion ────────────────────────────────────────────────────────────
+     Fast and boring (PRD §9.6). Maximum translate 8px; nothing scales. */
+  --ease-*: initial;
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-overlay: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-*: initial;
+  --animate-list-enter: list-enter 200ms cubic-bezier(0, 0, 0.2, 1) both;
+  --animate-modal-enter: modal-enter 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-palette-enter: palette-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-toast-enter: toast-enter 200ms cubic-bezier(0, 0, 0.2, 1) both;
+  --animate-fade-in: fade-in 200ms cubic-bezier(0, 0, 0.2, 1) both;
+  --animate-skeleton: skeleton 1.6s ease-in-out infinite;
+
+  @keyframes list-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes modal-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  /* The one place motion comes *down* the screen (PRD §9.1). */
+  @keyframes palette-enter {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes toast-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes skeleton {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
 }
 
 @layer base {
   html {
-    /* Resting cards use a 1px border and no shadow (PRD §9.3). */
     background-color: var(--color-canvas);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
   }
 
+  /* One ring, everywhere. Components never draw their own focus treatment. */
   :focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px rgb(42 97 214 / 0.18);
+  }
+
+  /* NFR-4 / PRD §9.6: all of it is suppressed for anyone who asked for less. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

@@ -1,75 +1,53 @@
-# React + TypeScript + Vite
+# Atlas — frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 · TypeScript · Vite · Tailwind v4 · Zustand · react-router · Zod · axios
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev      # http://localhost:5173, /api proxied to :8080
+npm run build    # tsc -b && vite build
+npm run test     # vitest
+npm run lint
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+The dev server proxies `/api` to `http://localhost:8080`, so the browser sees one origin and CORS
+is not involved locally. It is in production, where the two services sit on different domains —
+which is why the backend configures CORS explicitly rather than relying on the proxy.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Layout
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Path | What lives there |
+|---|---|
+| `src/styles/theme.css` | The design system. Tailwind v4 is CSS-first, so this file *is* the configuration — there is no `tailwind.config.js`. |
+| `src/lib/apiClient.ts` | The axios instance, the refresh interceptor, and `ApiError`. |
+| `src/lib/design.ts` | Every enum value's label and colour recipe, in one map. |
+| `src/schemas/` | Zod schemas mirroring the server's validation rules; types come from `z.infer`. |
+| `src/stores/` | Zustand: `authStore`, `prefsStore`, `uiStore`. |
+| `src/components/ui/` | The primitives. Built before any feature page, because every page needs them. |
+| `src/components/layout/` | Sidebar, app shell, auth gate, width notice. |
+| `src/routes/` | The route table and the two guards. |
+| `src/pages/` | One module per route, each with a default export (`React.lazy` requires one). |
 
-```
+## Three things worth knowing
+
+**The token namespaces are reset to `initial`.** `theme.css` deletes Tailwind's stock palette,
+type scale, breakpoints, and shadows before declaring Atlas's own. `bg-blue-500` and a 18px
+`text-lg` therefore generate no CSS at all — a class outside the system fails visibly instead of
+shipping a colour nobody chose. It is the cheapest enforcement of a design system there is.
+
+**The access token never touches storage.** It lives in memory; only the refresh token is
+persisted, to `localStorage`. `authStore.ts` carries the full reasoning and what would change for
+a production system — the short version is that an httpOnly refresh cookie is stronger, and this
+build is explicit about the trade-off rather than silent about it.
+
+**One refresh, however many requests.** When an access token expires with several requests in
+flight, every one of them gets a 401 at the same moment. The server rotates refresh tokens, so
+five independent refresh attempts means one success and four failures against a revoked token —
+and the user is signed out mid-session. `apiClient.ts` shares a single in-flight promise; the
+tests in `apiClient.test.ts` fire five parallel requests and assert exactly one refresh.
+
+## Testing
+
+Vitest with jsdom and Testing Library. The suite covers the two things that are genuinely hard to
+verify by hand: the refresh interceptor's concurrency guard, and the rule that a global shortcut
+does not fire while a text input has focus.

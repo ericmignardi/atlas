@@ -1,52 +1,27 @@
-import { useEffect, useState } from "react";
+import { Suspense } from "react";
+import { RouterProvider } from "react-router";
 
-type Health = "checking" | "ok" | "unreachable";
+import { AuthGate } from "@/components/layout/AuthGate";
+import { ToastViewport } from "@/components/ui/Toast";
+import { router } from "@/routes/router";
 
 /**
- * Walking skeleton. The only job today is to prove the round trip: the Vite dev
- * proxy forwards same-origin /api/... to :8080, so CORS is not involved locally.
- * It will be in production, where the two services sit on different Azure
- * domains — which is why CORS gets configured properly on Day 5.
+ * Three things, in this order. AuthGate first, because the router's guards
+ * cannot decide anything until the session is resolved; the toast viewport
+ * outside the router, so a toast survives the navigation that triggered it.
+ *
+ * The Suspense boundary here is the backstop for the lazy routes that render
+ * outside the app shell — the two auth pages. AppLayout has its own, closer to
+ * the content, so an in-app navigation shows a skeleton in the content column
+ * rather than blanking the whole window.
  */
-const App = () => {
-  const [api, setApi] = useState<Health>("checking");
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    fetch("/api/ping", { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
-      .then((body: { status?: string }) => setApi(body.status === "ok" ? "ok" : "unreachable"))
-      .catch((err: unknown) => {
-        if (err instanceof Error && err.name === "AbortError") return;
-        setApi("unreachable");
-      });
-
-    return () => controller.abort();
-  }, []);
-
-  return (
-    <main className="min-h-dvh grid place-items-center p-8">
-      <div className="w-full max-w-sm rounded-lg border border-line bg-surface p-6">
-        <p className="text-eyebrow uppercase text-ink-muted">Atlas</p>
-        <h1 className="mt-1 text-xl text-ink">Walking skeleton</h1>
-        <dl className="mt-4 flex items-baseline justify-between border-t border-line pt-4">
-          <dt className="text-sm text-ink-secondary">GET /api/ping</dt>
-          <dd
-            className={
-              api === "ok"
-                ? "text-mono-sm font-mono text-green-600"
-                : api === "unreachable"
-                  ? "text-mono-sm font-mono text-red-600"
-                  : "text-mono-sm font-mono text-ink-muted"
-            }
-          >
-            {api}
-          </dd>
-        </dl>
-      </div>
-    </main>
-  );
-};
+const App = () => (
+  <AuthGate>
+    <Suspense fallback={null}>
+      <RouterProvider router={router} />
+    </Suspense>
+    <ToastViewport />
+  </AuthGate>
+);
 
 export default App;
