@@ -6,3 +6,21 @@ management:
       # localhost:8080/actuator/health` is a useful check. Production keeps the
       # base "when-authorized" and gives anonymous callers only {"status":"UP"}.
       show-details: always
+
+# NFR-1.2 / Day 9.6. Every statement Hibernate issues, in the console, so
+# clicking through a list screen is also a query count. This is the only way to
+# see an N+1: the endpoint is just as correct with 1 + 300 queries as with 2,
+# and only the log tells them apart. Off in production — it is a per-statement
+# log line and a real cost under load.
+spring:
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        # The counter prints one summary line per session, which is the number
+        # you actually compare against "how many rows did this return?".
+        generate_statistics: true
+
+logging:
+  level:
+    org.hibernate.stat: INFO

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -36,6 +37,35 @@ public interface EnvironmentRepository extends JpaRepository<Environment, UUID> 
 	Optional<Environment> findByPairedWithId(UUID pairedWithId);
 
 	long countByProjectId(UUID projectId);
+
+	/** FR-6.1's third tile. Counted through the project, since ownership lives there. */
+	@Query("SELECT COUNT(e) FROM Environment e WHERE e.project.user.id = :userId")
+	long countForUser(UUID userId);
+
+	/**
+	 * The "across N platforms" line under that tile. {@code COUNT(DISTINCT …)} in
+	 * the database rather than a set built in Java, because the alternative is
+	 * loading every environment to look at one column.
+	 */
+	@Query("SELECT COUNT(DISTINCT e.platform) FROM Environment e WHERE e.project.user.id = :userId")
+	long countDistinctPlatformsForUser(UUID userId);
+
+	/**
+	 * FR-7.2. The project is fetched because every palette row names it, and it is
+	 * a to-one association, so the row limit still happens in SQL.
+	 *
+	 * <p>{@code q} arrives pre-wrapped in wildcards and lower-cased.
+	 */
+	@Query("""
+			SELECT e FROM Environment e
+			JOIN FETCH e.project p
+			WHERE p.user.id = :userId
+			  AND (LOWER(e.name) LIKE :q
+			        OR LOWER(e.branch) LIKE :q
+			        OR LOWER(e.url) LIKE :q)
+			ORDER BY e.name ASC
+			""")
+	List<Environment> searchByText(UUID userId, String q, Limit limit);
 
 	/** Every project's environment count in one query (NFR-1.2). */
 	@Query("""

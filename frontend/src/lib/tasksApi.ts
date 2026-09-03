@@ -24,6 +24,14 @@ export const listTasks = (projectId?: string): Promise<TaskResponse[]> =>
 export const taskBoard = (projectId?: string): Promise<BoardResponse> =>
   api.get<BoardResponse>("/tasks/board", { projectId });
 
+/**
+ * One task by id. The only caller is the command palette's Enter key: a task has
+ * no page of its own, so selecting one opens it for editing, and the palette row
+ * carries a title and a status rather than the whole record.
+ */
+export const getTask = (id: string): Promise<TaskResponse> =>
+  api.get<TaskResponse>("/tasks/" + id);
+
 export const createTask = (input: TaskCreate): Promise<TaskResponse> =>
   api.post<TaskResponse>("/tasks", input);
 

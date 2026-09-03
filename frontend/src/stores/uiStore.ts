@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+import type { QuickAddType } from "@/stores/prefsStore";
+
 export type ToastTone = "success" | "error" | "info";
 
 export interface Toast {
@@ -19,6 +21,18 @@ interface UiState {
   closePalette: () => void;
   togglePalette: () => void;
 
+  /**
+   * FR-6.6 / FR-7.6. Which quick-add form is open, or null.
+   *
+   * It lives here rather than in the split button because the button is on the
+   * dashboard and the shortcut is everywhere: pressing Ctrl+N on the tags page
+   * has to open the same form, and a component that is not mounted cannot open
+   * anything. The button dispatches, a host near the root renders.
+   */
+  quickAdd: QuickAddType | null;
+  openQuickAdd: (type: QuickAddType) => void;
+  closeQuickAdd: () => void;
+
   /** FR-8.3. Returns the id so a caller can dismiss its own toast early. */
   pushToast: (toast: Omit<Toast, "id">) => string;
   dismissToast: (id: string) => void;
@@ -36,6 +50,12 @@ export const useUiStore = create<UiState>()((set) => ({
   openPalette: () => set({ paletteOpen: true }),
   closePalette: () => set({ paletteOpen: false }),
   togglePalette: () => set((state) => ({ paletteOpen: !state.paletteOpen })),
+
+  quickAdd: null,
+  // Opening a form closes the palette: the palette's Create rows are one of the
+  // two ways in, and leaving it open behind a modal traps focus in the wrong place.
+  openQuickAdd: (quickAdd) => set({ quickAdd, paletteOpen: false }),
+  closeQuickAdd: () => set({ quickAdd: null }),
 
   pushToast: (toast) => {
     const id = crypto.randomUUID();

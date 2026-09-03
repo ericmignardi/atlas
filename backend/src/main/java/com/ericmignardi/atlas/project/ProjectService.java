@@ -3,6 +3,7 @@ package com.ericmignardi.atlas.project;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -79,6 +80,20 @@ public class ProjectService {
 	@Transactional(readOnly = true)
 	public ProjectResponse get(UUID userId, UUID id) {
 		return respond(require(userId, id));
+	}
+
+	/**
+	 * FR-6.2. Sorted by name so the four cards do not reshuffle between two
+	 * identical reads, and built through the same grouped-count lookup the list
+	 * uses rather than three queries per card.
+	 */
+	@Transactional(readOnly = true)
+	public List<ProjectResponse> pinned(UUID userId) {
+		CountLookup counts = countsForUser(userId);
+		return projects.findPinnedForUser(userId).stream()
+				.sorted(Comparator.comparing(Project::getName, String.CASE_INSENSITIVE_ORDER))
+				.map(project -> ProjectResponse.from(project, counts.of(project.getId())))
+				.toList();
 	}
 
 	/** FR-2.10. The slug is the URL the frontend routes on, so it is a first-class lookup. */

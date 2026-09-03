@@ -19,3 +19,13 @@ if (!window.matchMedia) {
       dispatchEvent: () => false,
     }) as MediaQueryList;
 }
+
+/**
+ * jsdom does no layout, so it implements no scrolling either and
+ * `Element.prototype.scrollIntoView` is simply absent. The command palette calls
+ * it to keep the selected row in view; without a stub every palette test dies in
+ * an effect rather than on the assertion it was written for.
+ */
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}

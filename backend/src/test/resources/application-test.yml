@@ -17,3 +17,12 @@ atlas:
 
 # Testcontainers supplies the datasource through @ServiceConnection, so the
 # Docker Postgres on 5433 is never touched by a test run.
+
+# NFR-1.2. The statistics counter is what `DashboardQueryCountIT` reads: it is
+# the only way to tell an endpoint that issues two queries from one that issues
+# two hundred, since both return the same JSON.
+spring:
+  jpa:
+    properties:
+      hibernate:
+        generate_statistics: true

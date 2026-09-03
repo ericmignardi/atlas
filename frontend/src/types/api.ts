@@ -186,3 +186,71 @@ export interface ErrorBody {
   code?: string;
   fields?: Record<string, string[]>;
 }
+
+/**
+ * FR-4.10 / FR-6.3. Three disjoint buckets over an eight-day window: everything
+ * already late, everything due before midnight tonight, and the rest of the
+ * week. The split is timezone-dependent, so the server does it — a browser in
+ * Vancouver and a server in UTC disagree about "today" for five hours a day.
+ */
+export interface NeedsAttention {
+  overdue: TaskResponse[];
+  dueToday: TaskResponse[];
+  dueSoon: TaskResponse[];
+}
+
+/** FR-6.1's four tiles. `platforms` and `totalProjects` are the second lines under two of them. */
+export interface DashboardStats {
+  totalProjects: number;
+  activeProjects: number;
+  openTasks: number;
+  overdueTasks: number;
+  environments: number;
+  platforms: number;
+  tags: number;
+}
+
+export interface DashboardResponse {
+  stats: DashboardStats;
+  /** FR-6.2. At most four; the client draws a dashed card in each unused slot. */
+  pinnedProjects: ProjectResponse[];
+  needsAttention: NeedsAttention;
+  /** FR-6.4. Nothing has ever been created — which is not the same as everything being archived. */
+  isNewAccount: boolean;
+}
+
+/**
+ * FR-7.2. Palette rows, not full records: each carries what its row renders and
+ * what selecting it needs to navigate, and nothing else.
+ */
+export interface SearchProject {
+  id: string;
+  name: string;
+  slug: string;
+  client: string | null;
+  status: ProjectStatus;
+}
+
+export interface SearchEnvironment {
+  id: string;
+  name: string;
+  type: EnvironmentType;
+  platform: Platform;
+  branch: string | null;
+  /** An environment is only reachable through its project's map. */
+  project: ProjectSummary;
+}
+
+export interface SearchTask {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  project: ProjectSummary | null;
+}
+
+/** Three groups, always present, always in this order — the palette renders them in it. */
+export interface SearchResponse {
+  projects: SearchProject[];
+  environments: SearchEnvironment[];
+  tasks: SearchTask[];
+}

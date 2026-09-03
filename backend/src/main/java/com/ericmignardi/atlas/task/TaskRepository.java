@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -70,6 +71,38 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
 	Integer findMinSortOrder(UUID userId, TaskStatus status);
 
 	long countByProjectIdAndStatusNot(UUID projectId, TaskStatus status);
+
+	long countByUserId(UUID userId);
+
+	/** FR-6.1's second tile, and the number the header's overdue pill hangs off. */
+	@Query("""
+			SELECT COUNT(t) FROM Task t
+			WHERE t.user.id = :userId AND t.status <> com.ericmignardi.atlas.task.TaskStatus.DONE
+			""")
+	long countOpenForUser(UUID userId);
+
+	/** The overdue pill itself, and the red count on the Tasks nav row. */
+	@Query("""
+			SELECT COUNT(t) FROM Task t
+			WHERE t.user.id = :userId AND t.status <> com.ericmignardi.atlas.task.TaskStatus.DONE
+			  AND t.dueDate < :now
+			""")
+	long countOverdueForUser(UUID userId, Instant now);
+
+	/**
+	 * FR-7.2. Done tasks are included: "what did I call that thing I finished"
+	 * is most of why anyone searches for a task at all.
+	 *
+	 * <p>{@code q} arrives pre-wrapped in wildcards and lower-cased.
+	 */
+	@Query("""
+			SELECT t FROM Task t
+			LEFT JOIN FETCH t.project
+			WHERE t.user.id = :userId
+			  AND (LOWER(t.title) LIKE :q OR LOWER(t.description) LIKE :q)
+			ORDER BY t.status ASC, t.sortOrder ASC
+			""")
+	List<Task> searchByText(UUID userId, String q, Limit limit);
 
 	long countByProjectIdAndStatusNotAndDueDateBefore(UUID projectId, TaskStatus status, Instant before);
 

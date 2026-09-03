@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { isApiError } from "@/lib/apiClient";
 import { listProjects } from "@/lib/projectsApi";
@@ -12,7 +12,7 @@ import {
   type TaskSortKey,
 } from "@/lib/taskFilters";
 import { applyMoves, type TaskMovePlan } from "@/lib/taskOrder";
-import { deleteTask, listTasks, moveTask, taskBoard, updateTask } from "@/lib/tasksApi";
+import { deleteTask, getTask, listTasks, moveTask, taskBoard, updateTask } from "@/lib/tasksApi";
 import { useApi } from "@/hooks/useApi";
 import { usePrefsStore } from "@/stores/prefsStore";
 import { toast } from "@/stores/uiStore";
@@ -55,9 +55,22 @@ interface TaskWorkspaceProps {
   projectId?: string;
   /** Used in the empty state's sentence. */
   projectName?: string;
+  /**
+   * FR-7.3. A task chosen in the command palette, opened for editing on arrival.
+   * A task has no page of its own — the form *is* the task — so this is what
+   * "Enter navigates correctly" means for the Tasks group.
+   */
+  focusTaskId?: string;
+  /** Called once the id has been consumed, so the caller can drop it from the URL. */
+  onFocusHandled?: () => void;
 }
 
-export const TaskWorkspace = ({ projectId, projectName }: TaskWorkspaceProps) => {
+export const TaskWorkspace = ({
+  projectId,
+  projectName,
+  focusTaskId,
+  onFocusHandled,
+}: TaskWorkspaceProps) => {
   const view = usePrefsStore((state) => state.taskView);
   const setView = usePrefsStore((state) => state.setTaskView);
 
@@ -102,6 +115,40 @@ export const TaskWorkspace = ({ projectId, projectName }: TaskWorkspaceProps) =>
   );
 
   const reload = useCallback(() => active.refetch(), [active]);
+
+  /**
+   * Fetched by id rather than looked up in `list.data`, because the board view
+   * has no list to look in and the list view has not necessarily loaded yet —
+   * and a palette hit can be a completed task the list is filtering out.
+   *
+   * The id is consumed either way. Leaving it in the URL means a refresh
+   * reopens a form the user has already closed.
+   */
+  useEffect(() => {
+    if (!focusTaskId) return;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const task = await getTask(focusTaskId);
+        if (cancelled) return;
+        setEditing(task);
+        setFormOpen(true);
+      } catch (error) {
+        if (cancelled) return;
+        toast.error(
+          "Could not open that task",
+          isApiError(error) ? error.message : "It may have been deleted.",
+        );
+      } finally {
+        if (!cancelled) onFocusHandled?.();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [focusTaskId, onFocusHandled]);
 
   /**
    * FR-4.8, optimistically. The card moves on the same tick as the drop and the

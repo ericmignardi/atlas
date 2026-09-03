@@ -19,6 +19,7 @@ import {
   type EnvironmentResponse,
   type EnvironmentType,
   type Platform,
+  type ProjectResponse,
 } from "@/types/api";
 
 /**
@@ -41,18 +42,22 @@ interface FormState {
   branch: string;
   url: string;
   notes: string;
+  /** Only ever edited on create; FR-3.1 does not allow moving an environment. */
+  projectId: string;
 }
 
-const blank = (type: EnvironmentType): FormState => ({
+const blank = (type: EnvironmentType, projectId: string): FormState => ({
   name: "",
   platform: "VERCEL",
   type,
   branch: "",
   url: "",
   notes: "",
+  projectId,
 });
 
 const fromEnvironment = (environment: EnvironmentResponse): FormState => ({
+  projectId: environment.projectId,
   name: environment.name,
   platform: environment.platform,
   type: environment.type,
@@ -79,6 +84,16 @@ interface EnvironmentFormModalProps {
   environment?: EnvironmentResponse;
   /** Pre-selects the group whose Add button was pressed. */
   defaultType?: EnvironmentType;
+  /**
+   * Turns `projectId` from the answer into the default. Passed only by quick add
+   * (FR-6.6), which is the one caller that is not already inside a project — the
+   * map knows which project it is drawing and does not offer the choice.
+   *
+   * Create only. FR-3.1 hangs an environment off a project permanently, and a
+   * select that quietly reparents one on edit would be a data migration wearing
+   * a dropdown.
+   */
+  projects?: readonly ProjectResponse[];
   onSaved: (environment: EnvironmentResponse, mode: "created" | "updated") => void;
 }
 
@@ -92,11 +107,12 @@ const EnvironmentForm = ({
   projectId,
   environment,
   defaultType = "PRODUCTION",
+  projects,
   onSaved,
 }: EnvironmentFormModalProps) => {
   const initial = useMemo(
-    () => (environment ? fromEnvironment(environment) : blank(defaultType)),
-    [environment, defaultType],
+    () => (environment ? fromEnvironment(environment) : blank(defaultType, projectId)),
+    [environment, defaultType, projectId],
   );
 
   const [form, setForm] = useState<FormState>(initial);
@@ -134,7 +150,7 @@ const EnvironmentForm = ({
     setFormError(null);
 
     const parsed = parseForm(environmentCreateSchema, {
-      projectId,
+      projectId: form.projectId,
       name: form.name,
       platform: form.platform,
       type: form.type,
@@ -236,6 +252,23 @@ const EnvironmentForm = ({
             >
               {formError}
             </p>
+          )}
+
+          {/* Only when the caller could not answer it already. */}
+          {!environment && projects && (
+            <Field label="Project" error={fields.projectId} required>
+              {(props) => (
+                <Select
+                  {...props}
+                  options={projects.map((project) => ({
+                    value: project.id,
+                    label: project.name,
+                  }))}
+                  value={form.projectId}
+                  onChange={(event) => set("projectId", event.target.value)}
+                />
+              )}
+            </Field>
           )}
 
           <div className="grid grid-cols-3 gap-4">
