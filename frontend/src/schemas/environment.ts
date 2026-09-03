@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ENVIRONMENT_TYPES, PLATFORMS } from "@/types/api";
+import { ENVIRONMENT_TYPES, PLATFORMS, type EnvironmentType, type Platform } from "@/types/api";
 
 /**
  * PRD §7.3, mirroring `CreateEnvironmentRequest` / `UpdateEnvironmentRequest`.
@@ -37,3 +37,19 @@ export const environmentPairSchema = z.object({
 });
 
 export type EnvironmentPair = z.infer<typeof environmentPairSchema>;
+
+/**
+ * The body of a PATCH, written as a type rather than derived from the schema —
+ * see `ProjectPatch` for the full argument. In short: `.partial()` expresses
+ * "key absent, leave it alone" but not "key present and null, clear it", and a
+ * `.nullable()` on every field would let a null through on `name`, which the
+ * server rejects with a 400. Nullable where the column is, plain where it is not.
+ */
+export interface EnvironmentPatch {
+  name?: string;
+  platform?: Platform;
+  type?: EnvironmentType;
+  branch?: string | null;
+  url?: string | null;
+  notes?: string | null;
+}

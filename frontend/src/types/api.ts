@@ -116,6 +116,38 @@ export interface EnvironmentResponse {
   updatedAt: string;
 }
 
+/** FR-3.15. A null `database` is the dashed empty slot, not a missing record. */
+export interface EnvironmentRow {
+  application: EnvironmentSummary;
+  database: EnvironmentSummary | null;
+}
+
+/**
+ * FR-3.5. Present even when empty, so the three cards do not come and go as
+ * environments are added — a layout that reflows on every create is a layout
+ * you cannot aim at.
+ */
+export interface EnvironmentGroup {
+  type: EnvironmentType;
+  rows: EnvironmentRow[];
+  /** A database paired with nothing, which is a real state rather than an error. */
+  orphanDatabases: EnvironmentSummary[];
+}
+
+/** Always three groups, always in the order Production, Preview, Development. */
+export interface GroupedEnvironments {
+  groups: EnvironmentGroup[];
+}
+
+/**
+ * Both sides of a pairing operation. `partner` is null after unpairing
+ * something that was not paired — a no-op, not a failure.
+ */
+export interface PairResponse {
+  environment: EnvironmentResponse;
+  partner: EnvironmentResponse | null;
+}
+
 export interface TaskResponse {
   id: string;
   title: string;
@@ -130,6 +162,16 @@ export interface TaskResponse {
   project: ProjectSummary | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface BoardColumn {
+  status: TaskStatus;
+  tasks: TaskResponse[];
+}
+
+/** FR-4.11 and FR-4.12: four columns, always present, Done already narrowed to seven days. */
+export interface BoardResponse {
+  columns: BoardColumn[];
 }
 
 /**

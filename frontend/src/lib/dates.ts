@@ -31,3 +31,43 @@ export function dateInputValue(value: string | null | undefined): string {
   const date = parse(value);
   return date ? format(date, "yyyy-MM-dd") : "";
 }
+
+/**
+ * A `yyyy-MM-dd` from a date input, as the instant the server stores.
+ *
+ * The time is the **end** of that day in the browser's zone, and that is the
+ * whole decision. `dueDate` is compared against `now` to derive `isOverdue`
+ * (FR-4.9), so a task due today stamped at midnight is overdue by breakfast —
+ * which is not what anyone means by "due today". Stamped at 23:59:59.999 it
+ * stays in FR-4.10's *today* bucket for the whole day and turns overdue when the
+ * day actually ends.
+ */
+export function dueDateToInstant(value: string): string | undefined {
+  if (!value) return undefined;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return undefined;
+  // Local construction on purpose: the user picked a date on their calendar,
+  // not on the server's.
+  return new Date(year, month - 1, day, 23, 59, 59, 999).toISOString();
+}
+
+/**
+ * "Overdue by 2 days", "Due today", "Due in 5 days" — the sentence, not the
+ * date. NFR-4.4: this is the text that has to carry the meaning, because the
+ * red is not allowed to carry it alone.
+ */
+export function dueLabel(value: string | null | undefined, done = false): string | null {
+  const date = parse(value);
+  if (!date) return null;
+
+  const startOfDay = (input: Date) =>
+    new Date(input.getFullYear(), input.getMonth(), input.getDate()).getTime();
+
+  const days = Math.round((startOfDay(date) - startOfDay(new Date())) / 86_400_000);
+
+  if (done) return `Due ${shortDate(value)}`;
+  if (days < 0) return days === -1 ? "Overdue by 1 day" : `Overdue by ${-days} days`;
+  if (days === 0) return "Due today";
+  if (days === 1) return "Due tomorrow";
+  return `Due in ${days} days`;
+}

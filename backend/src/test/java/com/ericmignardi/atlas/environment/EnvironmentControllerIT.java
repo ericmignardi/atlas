@@ -247,6 +247,42 @@ class EnvironmentControllerIT extends AbstractWebIntegrationTest {
 				.andExpect(jsonPath("$[2].type").value("DEVELOPMENT"));
 	}
 
+	/**
+	 * FR-3.7 says the relationship is symmetric, and the flat list is where that
+	 * is easiest to break: {@code paired_with_id} is one column, so only one of
+	 * the two rows need carry it. A list that reported the partner from that
+	 * column alone would tell the UI the database is unpaired while telling it the
+	 * application it is paired to — and the environment map decides between
+	 * "Pair…" and "Unpair" on exactly that field.
+	 */
+	@Test
+	void reportsThePartnerFromBothEndsOfAPair() throws Exception {
+		Environment app = environments.save(TestFixtures.environment(
+				project, "Production", EnvironmentType.PRODUCTION, Platform.VERCEL));
+		Environment database = environments.save(TestFixtures.environment(
+				project, "Neon — main", EnvironmentType.PRODUCTION, Platform.NEON));
+		pair(app, database);
+
+		mockMvc.perform(get("/api/environments")
+				.param("projectId", project.getId().toString())
+				.with(as(owner)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].name").value("Neon — main"))
+				.andExpect(jsonPath("$[0].pairedWith.name").value("Production"))
+				.andExpect(jsonPath("$[1].name").value("Production"))
+				.andExpect(jsonPath("$[1].pairedWith.name").value("Neon — main"));
+
+		// And it survives a filter that removes the partner from the result set,
+		// which is why the narrowing happens after the reverse map is built.
+		mockMvc.perform(get("/api/environments")
+				.param("projectId", project.getId().toString())
+				.param("platform", "NEON")
+				.with(as(owner)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(1))
+				.andExpect(jsonPath("$[0].pairedWith.name").value("Production"));
+	}
+
 	@Test
 	void doesNotRevealAnotherAccountsEnvironment() throws Exception {
 		Environment environment = environments.save(TestFixtures.environment(

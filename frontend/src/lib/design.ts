@@ -31,6 +31,22 @@ export const TINT_CLASSES: Record<Tint, string> = {
 };
 
 /**
+ * The saturated half of a recipe on its own, for a mark that is too small to be
+ * a badge — the 9 px square on a board column header (§8.2). A pale
+ * `bg-tint-blue` at that size is invisible against the surface, so the dot takes
+ * the ink instead. Written out in full for the same reason as above.
+ */
+export const TINT_DOT: Record<Tint, string> = {
+  neutral: "bg-tint-neutral-ink",
+  blue: "bg-tint-blue-ink",
+  green: "bg-tint-green-ink",
+  amber: "bg-tint-amber-ink",
+  red: "bg-tint-red-ink",
+  violet: "bg-tint-violet-ink",
+  teal: "bg-tint-teal-ink",
+};
+
+/**
  * FR-5.4 / §9.5. The tags table stores the *ink* hex of a recipe, so the UI maps
  * it back to the whole triple. An unrecognised hex — a colour set before the
  * palette changed — falls back to neutral rather than rendering nothing.

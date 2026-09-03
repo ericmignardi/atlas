@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { TASK_PRIORITIES, TASK_STATUSES } from "@/types/api";
+import { TASK_PRIORITIES, TASK_STATUSES, type TaskPriority, type TaskStatus } from "@/types/api";
 
 /**
  * PRD §7.4, mirroring `CreateTaskRequest` / `UpdateTaskRequest` / `MoveTaskRequest`.
@@ -33,3 +33,14 @@ export const taskMoveSchema = z.object({
 export type TaskCreate = z.infer<typeof taskCreateSchema>;
 export type TaskUpdate = z.infer<typeof taskUpdateSchema>;
 export type TaskMove = z.infer<typeof taskMoveSchema>;
+
+/** The body of a PATCH. Same reasoning as `ProjectPatch` and `EnvironmentPatch`. */
+export interface TaskPatch {
+  title?: string;
+  description?: string | null;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  /** FR-4.5: an explicit null moves the task to the Unassigned bucket. */
+  projectId?: string | null;
+  dueDate?: string | null;
+}

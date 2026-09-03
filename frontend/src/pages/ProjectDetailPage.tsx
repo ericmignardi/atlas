@@ -17,6 +17,8 @@ import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
 import { TagChip, TechChip } from "@/components/ui/TagChip";
 import { Tabs } from "@/components/ui/Tabs";
 import { ProjectFormModal } from "@/components/projects/ProjectFormModal";
+import { EnvironmentMap } from "@/components/environments/EnvironmentMap";
+import { TaskWorkspace } from "@/components/tasks/TaskWorkspace";
 import type { ProjectResponse } from "@/types/api";
 
 /**
@@ -273,20 +275,22 @@ const ProjectDetailPage = () => {
           <Overview project={current} />
         </Tabs.Panel>
 
+        {/*
+          §8.4. The same two components the standalone pages render, given a
+          `projectId`. They were written that way from the start rather than
+          built as pages and generalised afterwards — the second version of a
+          screen is where the two quietly stop agreeing.
+
+          Both sit inside `Tabs.Panel`, which unmounts the panel that is not
+          selected, so opening the project does not fetch environments and tasks
+          nobody has asked to see.
+        */}
         <Tabs.Panel id="environments">
-          <EmptyState
-            icon="environments"
-            title="The environment map arrives tomorrow"
-            description="Day 8 fills this tab with the three type groups, the pairing rail, and the create form. The API behind it is already done."
-          />
+          <EnvironmentMap projectId={current.id} projectName={current.name} />
         </Tabs.Panel>
 
         <Tabs.Panel id="tasks">
-          <EmptyState
-            icon="tasks"
-            title="The board arrives tomorrow"
-            description="Day 8 fills this tab with the four-column kanban and drag-and-drop reordering. The API behind it is already done."
-          />
+          <TaskWorkspace projectId={current.id} projectName={current.name} />
         </Tabs.Panel>
       </Tabs>
 

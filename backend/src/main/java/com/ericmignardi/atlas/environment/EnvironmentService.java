@@ -39,13 +39,28 @@ public class EnvironmentService {
 	private final ProjectRepository projects;
 	private final EnvironmentPairingService pairing;
 
+	/**
+	 * FR-3.7. The filter is applied in memory rather than in the query, and that
+	 * is the whole reason this reads the project unfiltered first: the pairing is
+	 * symmetric, so a row's partner may be the row that points *at* it, and a
+	 * database filter would drop that row before the reverse direction could be
+	 * rebuilt. Filtering to platform=NEON would then report every database as
+	 * unpaired. One query either way, so the narrowing costs nothing.
+	 */
 	@Transactional(readOnly = true)
 	public List<EnvironmentResponse> list(UUID userId, UUID projectId, EnvironmentFilter filter) {
 		requireProject(userId, projectId);
 
-		return environments.findForProject(projectId, userId, filter.type(), filter.platform()).stream()
+		List<Environment> all = environments.findForProject(projectId, userId, null, null);
+		Map<UUID, Environment> claimants = claimants(all);
+
+		return all.stream()
+				.filter(environment -> filter.type() == null || environment.getType() == filter.type())
+				.filter(environment -> filter.platform() == null
+						|| environment.getPlatform() == filter.platform())
 				.sorted(displayOrder())
-				.map(environment -> EnvironmentResponse.from(environment, environment.getPairedWith()))
+				.map(environment -> EnvironmentResponse.from(environment,
+						partnerWithin(environment, claimants)))
 				.toList();
 	}
 
@@ -64,12 +79,7 @@ public class EnvironmentService {
 		requireProject(userId, projectId);
 
 		List<Environment> all = environments.findForProject(projectId, userId, null, null);
-		Map<UUID, Environment> claimants = new HashMap<>();
-		for (Environment environment : all) {
-			if (environment.getPairedWith() != null) {
-				claimants.putIfAbsent(environment.getPairedWith().getId(), environment);
-			}
-		}
+		Map<UUID, Environment> claimants = claimants(all);
 
 		List<EnvironmentGroup> groups = new ArrayList<>();
 		for (EnvironmentType type : EnvironmentType.values()) {
@@ -186,6 +196,27 @@ public class EnvironmentService {
 				.toList();
 
 		return new EnvironmentGroup(type, rows, orphans);
+	}
+
+	/**
+	 * "Who points at me", rebuilt in memory from the list already in hand rather
+	 * than asked for again — one query for a whole project instead of one per row
+	 * (NFR-1.2).
+	 *
+	 * It exists because {@code paired_with_id} is a single column and a pairing
+	 * is symmetric. {@link EnvironmentPairingService} writes both rows, so both
+	 * directions are normally present; this is the safety net for a row written
+	 * one-sidedly, and without it that row reports itself unpaired while its
+	 * partner reports the pair — the same contradiction FR-3.11 exists to prevent.
+	 */
+	private static Map<UUID, Environment> claimants(List<Environment> all) {
+		Map<UUID, Environment> claimants = new HashMap<>();
+		for (Environment environment : all) {
+			if (environment.getPairedWith() != null) {
+				claimants.putIfAbsent(environment.getPairedWith().getId(), environment);
+			}
+		}
+		return claimants;
 	}
 
 	private static Environment partnerWithin(Environment environment, Map<UUID, Environment> claimants) {
